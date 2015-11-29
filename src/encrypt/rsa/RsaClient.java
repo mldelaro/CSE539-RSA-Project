@@ -46,15 +46,19 @@ public class RsaClient {
 		return messageToPad;
 	}
 	
-	private void createNewMessage()
+	private void createNewMessage(String newMessage)
 	{
-		String m = null;
-		m_strMessage = promptForMessage();
+		if(newMessage == null) {
+			String m = promptForMessage();
+			this.setMessage(m);
+		} else {
+			this.setMessage(newMessage);
+		}
 	}
 	
 	public byte[] getNewCiphertext()
 	{
-		createNewMessage();
+		createNewMessage(null);
 		byte[] bytesCiphertext = null;
 		
 		if(this.getMessage() != null) { //TODO: security regarding accessing private members in public method
@@ -89,22 +93,22 @@ public class RsaClient {
 	}
 
 
-	private BigInteger getServerPublicProduct() {
+	protected BigInteger getServerPublicProduct() {
 		return m_biServerPublicProduct;
 	}
 
 
-	private void setServerPublicProduct(BigInteger m_biServerPublicProduct) {
+	protected void setServerPublicProduct(BigInteger m_biServerPublicProduct) {
 		this.m_biServerPublicProduct = m_biServerPublicProduct;
 	}
 
 
-	private BigInteger getServerPublicExponent() {
+	protected BigInteger getServerPublicExponent() {
 		return m_biServerPublicExponent;
 	}
 
 
-	private void setServerPublicExponent(BigInteger m_biServerPublicExponent) {
+	protected void setServerPublicExponent(BigInteger m_biServerPublicExponent) {
 		this.m_biServerPublicExponent = m_biServerPublicExponent;
 	}
 }

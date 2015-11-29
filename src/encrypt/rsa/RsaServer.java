@@ -13,7 +13,7 @@ public class RsaServer {
 	private BigInteger m_PublicProduct;
 	private BigInteger m_PublicExponent;
 	private byte[] m_PublicKey;
-	private String m_lastMessage;
+	private String m_LastMessage;
 		
 	public RsaServer() {
 		m_PRG = new Random(1);
@@ -21,11 +21,11 @@ public class RsaServer {
 	
 	public void generatePublicKey() {
 		//Generate two random primes
-		BigInteger p1 = new BigInteger(50, 99, m_PRG);
+		BigInteger p1 = new BigInteger(512, 99, m_PRG);
 		BigInteger p1minus1 = p1.subtract(BigInteger.ONE);
 		this.setRandomPrime1(p1);
 		
-		BigInteger p2 = new BigInteger(50, 99, m_PRG);
+		BigInteger p2 = new BigInteger(512, 99, m_PRG);
 		BigInteger p2minus1 = p2.subtract(BigInteger.ONE);
 		this.setRandomPrime2(p2);
 		
@@ -87,7 +87,7 @@ public class RsaServer {
 	}
 	
 	public String PUBLISH_LastDecryptedMessage() {
-		return this.m_lastMessage;
+		return this.m_LastMessage;
 	}
 	
 	private BigInteger getPrivateKey() {
@@ -139,10 +139,10 @@ public class RsaServer {
 	}
 	
 	private String getLastDecryptedMessage() {
-		return this.m_lastMessage;
+		return this.m_LastMessage;
 	}
 	
 	private void setLastDecryptedMessage(String lastMessage) {
-		this.m_lastMessage = lastMessage;
+		this.m_LastMessage = lastMessage;
 	}
 }
