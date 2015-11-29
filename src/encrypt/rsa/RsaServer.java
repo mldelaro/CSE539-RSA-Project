@@ -1,3 +1,4 @@
+package encrypt.rsa;
 import java.math.BigInteger;
 import java.util.Random;
 
@@ -12,6 +13,7 @@ public class RsaServer {
 	private BigInteger m_PublicProduct;
 	private BigInteger m_PublicExponent;
 	private byte[] m_PublicKey;
+	private String m_lastMessage;
 		
 	public RsaServer() {
 		m_PRG = new Random(1);
@@ -38,14 +40,16 @@ public class RsaServer {
 		BigInteger publicExponent = BigInteger.ZERO;
 		publicExponent = publicExponent.add(BigInteger.ONE);
 		publicExponent = publicExponent.add(BigInteger.ONE);
-		publicExponent = publicExponent.add(BigInteger.ONE);		
+		publicExponent = publicExponent.add(BigInteger.ONE);
 		
 		/*TODO: Expand on Euclid's extended algorithm ?
-		 * Find a suitable public 'e' (e = 3 is sufficient for now) */
+		 * Find a suitable public 'e' (e = 3 is sufficient for now) 
+		 * Choose d and e S.T d*e = 1 mod phi(n)*/
 		while(publicExponent.gcd(phiOfN).compareTo(BigInteger.ONE) != 0 ||
 				publicExponent.compareTo(BigInteger.ONE) == 0) {
 			publicExponent = new BigInteger(10, m_PRG);
 		}
+		System.out.println("**DEBUG** gcd - " + publicExponent.toString() + " : " + publicExponent.gcd(phiOfN));
 		this.setPublicExponent(publicExponent);
 		
 		//Calculate private key
@@ -67,62 +71,78 @@ public class RsaServer {
 		System.out.println("Server received: " + testval);
 		
 		System.out.println("Alice receives c and decrypts with private key");
-		BigInteger m2 = biCiphertext.modPow(this.getPrivateKey(), this.getPublicProduct());
+		BigInteger biMessage = biCiphertext.modPow(this.getPrivateKey(), this.getPublicProduct());
 		
-		String testval2 = new String(m2.toByteArray());
-		System.out.println("Decrypted Message: " + testval2);		
-
+		String strMessage = new String(biMessage.toByteArray());
+		System.out.println("Decrypted Message: " + strMessage);
+		this.setLastDecryptedMessage(strMessage);
 	}
 	
-	public void displayMessage() {
-		
+	public BigInteger PUBLISH_PublicProduct() {
+		return this.m_PublicProduct;
+	}
+	
+	public BigInteger PUBLISH_PublicExponent() {
+		return this.m_PublicExponent;
+	}
+	
+	public String PUBLISH_LastDecryptedMessage() {
+		return this.m_lastMessage;
 	}
 	
 	private BigInteger getPrivateKey() {
 		return m_PrivateKey;
 	}
 
-	private void setPrivateKey(BigInteger m_PrivateKey) {
-		this.m_PrivateKey = m_PrivateKey;
+	private void setPrivateKey(BigInteger privateKey) {
+		this.m_PrivateKey = privateKey;
 	}
 
 	private BigInteger getRandomPrime1() {
 		return m_RandomPrime1;
 	}
 
-	private void setRandomPrime1(BigInteger m_RandomPrime1) {
-		this.m_RandomPrime1 = m_RandomPrime1;
+	private void setRandomPrime1(BigInteger randomPrime1) {
+		this.m_RandomPrime1 = randomPrime1;
 	}
 
 	private BigInteger getRandomPrime2() {
 		return m_RandomPrime2;
 	}
 
-	private void setRandomPrime2(BigInteger m_RandomPrime2) {
-		this.m_RandomPrime2 = m_RandomPrime2;
+	private void setRandomPrime2(BigInteger randomPrime2) {
+		this.m_RandomPrime2 = randomPrime2;
 	}
 
-	public BigInteger getPublicProduct() {
+	private BigInteger getPublicProduct() {
 		return m_PublicProduct;
 	}
 
-	private void setPublicProduct(BigInteger m_PublicProduct) {
-		this.m_PublicProduct = m_PublicProduct;
+	private void setPublicProduct(BigInteger publicProduct) {
+		this.m_PublicProduct = publicProduct;
 	}
 
-	public BigInteger getPublicExponent() {
+	private BigInteger getPublicExponent() {
 		return m_PublicExponent;
 	}
 
-	private void setPublicExponent(BigInteger m_PublicExponent) {
-		this.m_PublicExponent = m_PublicExponent;
+	private void setPublicExponent(BigInteger publicExponent) {
+		this.m_PublicExponent = publicExponent;
 	}
 
 	private byte[] getPublicKey() {
 		return m_PublicKey;
 	}
 
-	private void setPublicKey(byte[] m_PublicKey) {
-		this.m_PublicKey = m_PublicKey;
+	private void setPublicKey(byte[] publicKey) {
+		this.m_PublicKey = publicKey;
+	}
+	
+	private String getLastDecryptedMessage() {
+		return this.m_lastMessage;
+	}
+	
+	private void setLastDecryptedMessage(String lastMessage) {
+		this.m_lastMessage = lastMessage;
 	}
 }

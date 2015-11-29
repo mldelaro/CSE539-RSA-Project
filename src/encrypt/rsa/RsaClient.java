@@ -1,3 +1,4 @@
+package encrypt.rsa;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.Random;
@@ -71,6 +72,10 @@ public class RsaClient {
 		} else {
 			return null;
 		}
+	}
+	
+	public String PUBLISH_Message() {
+		return this.getMessage();
 	}
 
 
