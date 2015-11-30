@@ -15,6 +15,40 @@ public class RsaRunner {
 
 
 	public static void main(String[] args) {
+
+		LargeIntBitArray v1 = new LargeIntBitArray(8);
+		LargeIntBitArray v2 = new LargeIntBitArray(4);
+		LargeIntBitArray v3 = v1.minus(v2);
+		System.out.printf("%s\n",v3.toInt());
+		
+		
+		/*LargeIntBitArray teeest = new LargeIntBitArray(123123123);
+
+		char[] death = teeest.toCharArray();
+		String death2 = new String(death);
+		System.out.printf("%s %d\n",  death2, death2.length());
+		System.out.printf("%s\n",teeest.toInt());
+		System.out.printf("%s\n",teeest.toString());
+		String instr = (char)7 + "Vµ³";
+		teeest.fromCharArray(instr.toCharArray());
+		System.out.printf("%s\n",teeest.toString());
+		System.out.printf("%d\n",teeest.toInt());
+		
+		LargeIntBitArray test2 = teeest.plus(teeest);
+		System.out.printf("%s\n",test2.toString());
+		test2 = test2.lshift(18);
+		System.out.printf("%s\n",test2.toString());
+		test2 = test2.rshift(17);
+		System.out.printf("%s\n",test2.toString());
+		System.out.printf("%d\n",test2.toInt());
+		test2 = test2.multiply(3);
+		System.out.printf("%d\n",test2.toInt());
+		
+		LargeIntBitArray test3 = new LargeIntBitArray(15537);
+		test3 = test3.square();
+		System.out.printf("%d\n",test3.toInt());*/
+		
+		/*
 		//Seeds that work? 1, 4, 7, 11		
 		System.out.println("Initializing server... ");
 		alice = new RsaServer();
@@ -45,7 +79,8 @@ public class RsaRunner {
 		
 		assertEquals(bob.PUBLISH_Message(), alice.PUBLISH_LastDecryptedMessage());
 		
-		System.out.println("DONE");
+		System.out.println("DONE");*/
+		
 			
 	}
 }
