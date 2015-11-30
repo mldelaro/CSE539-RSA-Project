@@ -21,7 +21,7 @@ public class MalleableAttackTest {
 	private BigInteger publicExponent;
 	
 	@Test
-	public void performEncryptAndDecrypt() {
+	public void performMalleableAttackTest() {
 		System.out.println("Initializing server... ");
 		alice = new RsaServer();
 		System.out.println("Server generating public key... ");
@@ -39,33 +39,21 @@ public class MalleableAttackTest {
 		
 		System.out.println("Client generating ciphertext... ");
 		byte[] bytesCiphertext = bob.getNewCiphertext();
-		BigInteger biCiphertext = new BigInteger(1, bytesCiphertext);
+		/*BigInteger biCiphertext = new BigInteger(1, bytesCiphertext);
 		String strCiphertext = new String(biCiphertext.toByteArray());
 		System.out.println("Message: " + strCiphertext);
 		
 		System.out.println("**ATTACK STARTS**");
+		
 		System.out.println("Eve gets bob's ciphertext");
-		eve.setSniffedCiphertext(bytesCiphertext);
-		byte[] payload = eve.startMalleableAttack();
-		alice.receiveCiphertext(payload);
-		System.out.println("\nPublishing results... ");
-		System.out.println("Alice's Received Message: " + alice.PUBLISH_LastDecryptedMessage());
-		
-		System.out.println("Message Value: " + new BigInteger(1, bytesCiphertext).toString());
-		System.out.println("Payload Value: " + new BigInteger(1, payload).toString());
-		System.out.println("2m mod n: " + new BigInteger(1, payload).toString());
-
-		/*
-		System.out.println("Server getting ciphertext... ");
-		alice.receiveCiphertext(bytesCiphertext);
+		//PROOF OF CONCEPT - multiplying 2m -> deposit twice as much
+		BigInteger biPayload = biCiphertext.multiply(BigInteger.valueOf(2)
+											.modPow(publicExponent,
+													publicProduct));
+		alice.receiveCiphertext(biPayload.toByteArray());
 		
 		System.out.println("\nPublishing results... ");
-		System.out.println("Bob's Sent Message: " + bob.PUBLISH_Message());
 		System.out.println("Alice's Received Message: " + alice.PUBLISH_LastDecryptedMessage());
-		
-		assertEquals(bob.PUBLISH_Message(), alice.PUBLISH_LastDecryptedMessage());
-		
 		System.out.println("DONE");*/
 	}
-
 }
