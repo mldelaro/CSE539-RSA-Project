@@ -6,6 +6,7 @@ public class LargeInt implements Comparable<LargeInt> {
 	
 	public static final LargeInt ZERO = new LargeInt(0);
 	public static final LargeInt ONE = new LargeInt(1);
+	public static final LargeInt TEN = new LargeInt(10);
 	
 	private boolean[] value;
 	
@@ -14,7 +15,7 @@ public class LargeInt implements Comparable<LargeInt> {
 	// computational reasons.
 	// this is GLOBAL, ACROSS THE ENTIRE IMPLEMENTATION.
 	// DO NOT CHANGE THIS
-	public static int SIZE = 2200;
+	public static final int SIZE = 2200;
 	
 	// Initializes to 0
 	public LargeInt() {
@@ -75,7 +76,7 @@ public class LargeInt implements Comparable<LargeInt> {
 	// Sets value from an integer
 	public void fromInt(int v) {	
 		int i = SIZE - 1;
-		System.out.printf("%d", SIZE);
+		//System.out.printf("%d", SIZE);
 		while (v > 0) {
 			if (v % 2 == 1) value[i] = true;
 			else value[i] = false;
@@ -341,6 +342,36 @@ public class LargeInt implements Comparable<LargeInt> {
 		return new LargeInt(result);
 	}
 	
+	// AND
+	public LargeInt and(LargeInt v) {
+		boolean[] result = new boolean[SIZE];
+		boolean[] op2 = v.getValue();
+		
+		for (int i = 0; i < SIZE; i++) result[i] = value[i] & op2[i];
+		
+		return new LargeInt(result);
+	}
+	
+	// OR
+	public LargeInt or(LargeInt v) {
+		boolean[] result = new boolean[SIZE];
+		boolean[] op2 = v.getValue();
+		
+		for (int i = 0; i < SIZE; i++) result[i] = value[i] | op2[i];
+		
+		return new LargeInt(result);
+	}
+	
+	// XOR
+	public LargeInt xor(LargeInt v) {
+		boolean[] result = new boolean[SIZE];
+		boolean[] op2 = v.getValue();
+		
+		for (int i = 0; i < SIZE; i++) result[i] = value[i] ^ op2[i];
+		
+		return new LargeInt(result);
+	}
+	
 	// computes gcd via Euclidean algo
 	public LargeInt gcd(LargeInt b) {
 		
@@ -349,11 +380,12 @@ public class LargeInt implements Comparable<LargeInt> {
 			// assume b less than this
 			LargeInt r = this, s = b, t = r.mod(b);
 			while (t.compareTo(LargeInt.ZERO) > 0) {
+				//System.out.printf("\n %d %d %d \n",r.toInt(), s.toInt(), t.toInt());
 				r = s;
 				s = t;
-				t = r.mod(b);
+				t = r.mod(s);
 			}
-			return b;
+			return s;
 		}
 	}
 	
@@ -373,7 +405,7 @@ public class LargeInt implements Comparable<LargeInt> {
 	*/
 	
 	// toString
-	public String toString() {
+	/*public String toString() {
 		char[] string = new char[SIZE];
 		for (int i = 0; i < SIZE; i++) {
 			if (value[i] == true) string[i] = '1';
@@ -381,6 +413,21 @@ public class LargeInt implements Comparable<LargeInt> {
 		}
 		String s = new String(string);
 		return s;
+	}*/
+	
+	// Writes this in decimal.
+	public String toString() {
+		
+		if (this.compareTo(ZERO) == 0) return "0";
+		else {
+			StringBuffer s = new StringBuffer();
+			LargeInt i = new LargeInt(this);
+			do {
+				s.append(i.mod(TEN).toInt());
+				i = i.divide(TEN);
+			} while (i.compareTo(ZERO) > 0);
+			return new String(s.reverse());
+		}
 	}
 	
 	// compareTo
