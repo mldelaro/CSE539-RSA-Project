@@ -1,5 +1,8 @@
 package encrypt.rsa;
 import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Random;
 import java.util.Scanner;
@@ -48,33 +51,108 @@ public class RsaClient {
 		System.out.println("**PAD** - messageLength: " + m_nMessageLength);
 		
 		//pad m with k1 zeroes
-		byte[] paddedMessage = new byte[m_nPaddedMessageLength];
-		byte[] m = appendZeroValueBytes(messageToPad, m_nMessageLength); // pad m with zeros
+		byte[] paddedMessage = null;
+		int messageByteLength = (int)(m_nPaddedMessageLength / 8);
+		byte[] m = appendZeroValueBytes(messageToPad, messageByteLength); // pad m with zeros
 		
 		// generate r as a k0-length string
 		byte[] r = new BigInteger((m_nRandomPadLength), m_PRG).toByteArray();
-		r = appendZeroValueBytes(r, m_nRandomPadLength); // pad r with zeros
+		int randomPadByteLength = (int)(m_nRandomPadLength / 8);
+		r = appendZeroValueBytes(r, randomPadByteLength); // pad r with zeros
 		
-		//hash r to n - k0 bits using G
-		int hashBitLength = m_nMessageLength - m_nRandomPadLength;
-		
-		System.out.println("**PAD** - hashing r to length n-k0: " + hashBitLength);
-		System.out.println("**PAD** - resulting hash G(r):");
-		printBytes(paddedMessage);
+		//hash and expand r to n - k0 bits using G
+		byte[] GofR = null;
+		int hashByteLength = messageByteLength - randomPadByteLength;
+		try {
+			MessageDigest hash256 = MessageDigest.getInstance("SHA-256");
+		    GofR = maskGenerationFunction(r, hashByteLength ,hash256);		    
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
 		
 		//XOR m and G(r)
+		BigInteger biM = new BigInteger(1, m);
+		BigInteger biGofR = new BigInteger(1, GofR);
+		BigInteger biX = biM.xor(biGofR);
+		byte[] X = biX.toByteArray();
+		X = getEndingBytes(X, hashByteLength);
 		
 		//reduce X to k0 bits
+		byte[] HofX = null;
+		try {
+			MessageDigest hash512 = MessageDigest.getInstance("SHA-512");
+			HofX = maskGenerationFunction(X, randomPadByteLength, hash512);
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
 		
 		//XOR r and H(X)
+		BigInteger biR = new BigInteger(1, r);
+		BigInteger biHofX = new BigInteger(1, HofX);
+		BigInteger birXORhOfX = biR.xor(biHofX);
+		byte[] Y = birXORhOfX.toByteArray();
 		
 		//concat X and Y
-		paddedMessage = concatenateByte(m, r);
+		paddedMessage = concatenateByte(X, Y);
 		
-		System.out.println("**PAD** - resulting pad:");
+		System.out.println("**PAD** - resulting pad with size: " + paddedMessage.length);
 		printBytes(paddedMessage);
 		return messageToPad;
 	}
+	
+	/* takes an input block and a desired output length 
+	 * uses the SHA-2 family based hash function to 
+	 * 
+	 */
+	private byte[] maskGenerationFunction(byte[] seed, int desiredByteLength, MessageDigest hashFunction ) {
+		byte[] T = new byte[desiredByteLength]; //create empty byte array
+		int counter = 0;
+		double digestByteSize = (double)(hashFunction.getDigestLength() / 8.0d);
+		double temp = (desiredByteLength / digestByteSize);
+		int endIndex = (int)(Math.ceil(temp));
+		for(counter = 0; counter < endIndex; counter++) {
+			// convert count to 4-byte array
+			byte[] byteCounter = intToByteArray(counter);
+			
+			//concatenate seed and counter
+			byte[] blockToHash;
+			blockToHash = concatenateByte(seed, byteCounter);
+			
+			//hash the concatenation
+			hashFunction.update(blockToHash);
+			byte[] blockToConcatenate;
+			blockToConcatenate = hashFunction.digest();
+			
+			// add to octet string
+			T = concatenateByte(T, blockToConcatenate);
+		}
+		
+		byte[] output = getEndingBytes(T, desiredByteLength);
+		//return leading desired number of bytes
+		return output;
+	}
+	
+	private byte[] intToByteArray(int value) {
+		return ByteBuffer.allocate(4).putInt(value).array();
+	}
+	
+	// for use in mask generation function (output)
+	private byte[] getEndingBytes(byte[] block, int bytesToKeep) {
+		byte[] outputBlock = new byte[bytesToKeep];
+		
+		if(bytesToKeep > block.length) {
+			outputBlock = appendZeroValueBytes(block, bytesToKeep);
+		} else {
+			for(int i = 0; i < bytesToKeep; i++) {
+				int indexToCopy = (block.length - (bytesToKeep - i));
+				outputBlock[i] = block[indexToCopy];
+			}
+		}
+		
+		return outputBlock;
+	}
+	
+	
 	/*
 	private byte[] getByteSubset(byte[] blockSet, int firstIndex, int lastIndex) {
 		if((lastIndex - firstIndex) < 0) {
@@ -101,12 +179,12 @@ public class RsaClient {
 		}
 	}
 	
-	private byte[] appendZeroValueBytes(byte[] blockA, int desiredBitLength) {
-		int oldBitLength = blockA.length * 8;
+	private byte[] appendZeroValueBytes(byte[] blockA, int desiredByteLength) {
+		int oldByteLength = blockA.length;
 		
-		if(oldBitLength < desiredBitLength) {
-			int neededZeroBlocks = ((desiredBitLength - oldBitLength)/8) ;
-			byte[] paddedBlock = new byte[(desiredBitLength / 8)];
+		if(oldByteLength < desiredByteLength) {
+			int neededZeroBlocks = (desiredByteLength- oldByteLength) ;
+			byte[] paddedBlock = new byte[desiredByteLength];
 			for(int i = 0; i < blockA.length; i++) {
 				paddedBlock[i] = blockA[i];
 			}
