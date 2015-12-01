@@ -15,7 +15,7 @@ public class LargeInt implements Comparable<LargeInt> {
 	// computational reasons.
 	// this is GLOBAL, ACROSS THE ENTIRE IMPLEMENTATION.
 	// DO NOT CHANGE THIS
-	public static final int SIZE = 2200;
+	public static final int SIZE = 2000;
 	
 	// Initializes to 0
 	public LargeInt() {
@@ -234,19 +234,36 @@ public class LargeInt implements Comparable<LargeInt> {
 		return result;
 	}
 	
-	// Computes division somewhat efficiently using binary search.
-	public LargeInt divide(LargeInt d) {
-		
+	public LargeInt multiply(boolean[] op2) {
 		LargeInt result = new LargeInt();
-		for (int i = SIZE/2; i<SIZE; i++) {
+		
+		for (int i = SIZE-1; i >= 0; i--) {
 			
-			result.setPos(i,  true);
-			if (this.compareTo(d.multiply(result)) < 0)
-				result.setPos(i, false);
-			
+			if (op2[i]) {
+				result = result.plus(this.lshift(SIZE-1-i));
+			}
+			//System.out.printf("%d  ", i);
 		}
 		
 		return result;
+	}
+	
+	// Computes division somewhat efficiently using binary search.
+	public LargeInt divide(LargeInt d) {
+		boolean[] result = new boolean[SIZE];
+		//LargeInt result = new LargeInt();
+		for (int i = SIZE/2; i<SIZE; i++) {
+			
+			//result.setPos(i,  true);
+			result[i] = true;
+			if (this.compareTo(d.multiply(result)) < 0) {
+				//result.setPos(i, false);
+				result[i] = false;
+			}	
+			
+		}
+		
+		return new LargeInt(result);
 	}
 	
 	// Computes this mod modulus and returns the result.
@@ -268,6 +285,10 @@ public class LargeInt implements Comparable<LargeInt> {
 	// Multiplies a long int with a regular int.
 	public LargeInt multiply(int v) {
 		return this.multiply(new LargeInt(v));
+	}
+	
+	public LargeInt exp(int v) {
+		return this.exp(new LargeInt(v));
 	}
 	
 	// Computes this^e mod modulus using repeated squaring.
@@ -380,7 +401,7 @@ public class LargeInt implements Comparable<LargeInt> {
 			// assume b less than this
 			LargeInt r = this, s = b, t = r.mod(b);
 			while (t.compareTo(LargeInt.ZERO) > 0) {
-				//System.out.printf("\n %d %d %d \n",r.toInt(), s.toInt(), t.toInt());
+				System.out.printf("\n %d %d %d \n",r.toInt(), s.toInt(), t.toInt());
 				r = s;
 				s = t;
 				t = r.mod(s);
@@ -421,10 +442,17 @@ public class LargeInt implements Comparable<LargeInt> {
 		if (this.compareTo(ZERO) == 0) return "0";
 		else {
 			StringBuffer s = new StringBuffer();
-			LargeInt i = new LargeInt(this);
+			
+			
+			
+			
+			LargeInt i = this;
+			LargeInt j = new LargeInt();
 			do {
-				s.append(i.mod(TEN).toInt());
+				j = i.mod(TEN);
+				s.append(j.toInt());
 				i = i.divide(TEN);
+				System.out.printf("%s\n",s);
 			} while (i.compareTo(ZERO) > 0);
 			return new String(s.reverse());
 		}
