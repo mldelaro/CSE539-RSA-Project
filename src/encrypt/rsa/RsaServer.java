@@ -7,11 +7,11 @@ public class RsaServer {
 	private static final int m_PublicKeyLength = 0; //TODO: Determine key length
 	
 	private Random m_PRG;
-	private BigInteger m_PrivateKey;
-	private BigInteger m_RandomPrime1;
-	private BigInteger m_RandomPrime2;
-	private BigInteger m_PublicProduct;
-	private BigInteger m_PublicExponent;
+	private LargeInt m_PrivateKey;
+	private LargeInt m_RandomPrime1;
+	private LargeInt m_RandomPrime2;
+	private LargeInt m_PublicProduct;
+	private LargeInt m_PublicExponent;
 	private byte[] m_PublicKey;
 	private String m_LastMessage;
 		
@@ -21,68 +21,72 @@ public class RsaServer {
 	
 	public void generatePublicKey() {
 		//Generate two random primes
-		BigInteger p1 = new BigInteger(512, 99, m_PRG);
-		BigInteger p1minus1 = p1.subtract(BigInteger.ONE);
+		LargeInt p1 = new LargeInt(new BigInteger(512, 99, m_PRG).toByteArray());
+		LargeInt p1minus1 = p1.minus(LargeInt.ONE);
 		this.setRandomPrime1(p1);
 		
-		BigInteger p2 = new BigInteger(512, 99, m_PRG);
-		BigInteger p2minus1 = p2.subtract(BigInteger.ONE);
+		LargeInt p2 = new LargeInt(new BigInteger(512, 99, m_PRG).toByteArray());
+		LargeInt p2minus1 = p2.minus(LargeInt.ONE);
 		this.setRandomPrime2(p2);
 		
 		//Get the product of the random primes
-		BigInteger n = p1.multiply(p2);
+		LargeInt n = p1.multiply(p2);
 		this.setPublicProduct(n);
 
 		//Calculate Phi of product
-		BigInteger phiOfN = p1minus1.multiply(p2minus1);
+		LargeInt phiOfN = p1minus1.multiply(p2minus1);
 		
 		//Generate public exponent
-		BigInteger publicExponent = BigInteger.ZERO;
-		publicExponent = publicExponent.add(BigInteger.ONE);
-		publicExponent = publicExponent.add(BigInteger.ONE);
-		publicExponent = publicExponent.add(BigInteger.ONE);
+		//LargeInt publicExponent = LargeInt.ZERO;
+		//publicExponent = publicExponent.plus(LargeInt.ONE);
+		//publicExponent = publicExponent.plus(LargeInt.ONE);
+		//publicExponent = publicExponent.plus(LargeInt.ONE);
+		LargeInt publicExponent = new LargeInt(3);
 		
 		/*TODO: Expand on Euclid's extended algorithm ?
 		 * Find a suitable public 'e' (e = 3 is sufficient for now) 
 		 * Choose d and e S.T d*e = 1 mod phi(n)*/
-		while(publicExponent.gcd(phiOfN).compareTo(BigInteger.ONE) != 0 ||
-				publicExponent.compareTo(BigInteger.ONE) == 0) {
-			publicExponent = new BigInteger(10, m_PRG);
+		//System.out.println("**DEBUG** asdfsdfsdf");
+
+		while(new BigInteger(publicExponent.toByteArray()).gcd(new BigInteger(phiOfN.toByteArray())).compareTo(BigInteger.ONE) != 0 ||
+				publicExponent.compareTo(LargeInt.ONE) == 0) {
+			System.out.println("**DEBUG** asdfsdfsdf");
+			publicExponent = new LargeInt(new BigInteger(10, m_PRG).toByteArray());
 		}
-		System.out.println("**DEBUG** gcd - " + publicExponent.toString() + " : " + publicExponent.gcd(phiOfN));
+		System.out.println("**DEBUG** gcd - " + new BigInteger(publicExponent.toByteArray()).toString() + " : " + new BigInteger(publicExponent.toByteArray()).gcd(new BigInteger(phiOfN.toByteArray())));
 		this.setPublicExponent(publicExponent);
 		
 		//Calculate private key
-		BigInteger two = BigInteger.valueOf(2);
-		BigInteger one = BigInteger.valueOf(1);
-		BigInteger privateKey = two.multiply(phiOfN);
-		privateKey = privateKey.add(one);
+		LargeInt two = new LargeInt(2);
+		LargeInt one = new LargeInt(1);
+		LargeInt privateKey = two.multiply(phiOfN);
+		privateKey = privateKey.plus(one);
 		privateKey = privateKey.divide(publicExponent);
 		this.setPrivateKey(privateKey);
 		
 		System.out.println("Alice calculates Shares: ");
-		System.out.println("n = " + n.toString());
-		System.out.println("e = " + publicExponent.toString());
+		System.out.println("n = " + new BigInteger(n.toByteArray()).toString());
+		System.out.println("e = " + new BigInteger(publicExponent.toByteArray()).toString());
 	}
 	
 	public void receiveCiphertext(byte[] bytesCiphertext) {
-		BigInteger biCiphertext = new BigInteger(1, bytesCiphertext);
+		LargeInt biCiphertext = new LargeInt(bytesCiphertext);
 		String testval = new String(biCiphertext.toByteArray());
 		System.out.println("Server received: " + testval);
 		
 		System.out.println("Alice receives c and decrypts with private key");
-		BigInteger biMessage = biCiphertext.modPow(this.getPrivateKey(), this.getPublicProduct());
+		LargeInt biMessage = new LargeInt(new BigInteger(biCiphertext.toByteArray()).modPow(new BigInteger(this.getPrivateKey().toByteArray()), new BigInteger(this.getPublicProduct().toByteArray())).toByteArray());
 		
 		String strMessage = new String(biMessage.toByteArray());
 		System.out.println("Decrypted Message: " + strMessage);
 		this.setLastDecryptedMessage(strMessage);
 	}
 	
-	public BigInteger PUBLISH_PublicProduct() {
+	public LargeInt PUBLISH_PublicProduct() {
 		return this.m_PublicProduct;
 	}
 	
-	public BigInteger PUBLISH_PublicExponent() {
+	public LargeInt PUBLISH_PublicExponent() {
 		return this.m_PublicExponent;
 	}
 	
@@ -90,43 +94,43 @@ public class RsaServer {
 		return this.m_LastMessage;
 	}
 	
-	private BigInteger getPrivateKey() {
+	private LargeInt getPrivateKey() {
 		return m_PrivateKey;
 	}
 
-	private void setPrivateKey(BigInteger privateKey) {
+	private void setPrivateKey(LargeInt privateKey) {
 		this.m_PrivateKey = privateKey;
 	}
 
-	private BigInteger getRandomPrime1() {
+	private LargeInt getRandomPrime1() {
 		return m_RandomPrime1;
 	}
 
-	private void setRandomPrime1(BigInteger randomPrime1) {
+	private void setRandomPrime1(LargeInt randomPrime1) {
 		this.m_RandomPrime1 = randomPrime1;
 	}
 
-	private BigInteger getRandomPrime2() {
+	private LargeInt getRandomPrime2() {
 		return m_RandomPrime2;
 	}
 
-	private void setRandomPrime2(BigInteger randomPrime2) {
+	private void setRandomPrime2(LargeInt randomPrime2) {
 		this.m_RandomPrime2 = randomPrime2;
 	}
 
-	private BigInteger getPublicProduct() {
+	private LargeInt getPublicProduct() {
 		return m_PublicProduct;
 	}
 
-	private void setPublicProduct(BigInteger publicProduct) {
+	private void setPublicProduct(LargeInt publicProduct) {
 		this.m_PublicProduct = publicProduct;
 	}
 
-	private BigInteger getPublicExponent() {
+	private LargeInt getPublicExponent() {
 		return m_PublicExponent;
 	}
 
-	private void setPublicExponent(BigInteger publicExponent) {
+	private void setPublicExponent(LargeInt publicExponent) {
 		this.m_PublicExponent = publicExponent;
 	}
 
