@@ -15,6 +15,7 @@ import org.junit.Test;
 
 import encrypt.rsa.RsaClient;
 import encrypt.rsa.RsaServer;
+import encrypt.rsa.util.RsaUtility;
 
 public class SimplePaddedRsaTest {
 	
@@ -46,6 +47,9 @@ public class SimplePaddedRsaTest {
 		// Bob generates a padded message ciphertext to send to alice
 		System.out.println("Client generating ciphertext... ");
 		byte[] ciphertext = bob.getNewCiphertext(true); // true = padded
+		
+		System.out.print("\n*Ciphertext: ");
+		RsaUtility.printBytes(ciphertext);
 		
 		// Alice receives Bob's ciphertext
 		System.out.println("Server getting ciphertext... ");

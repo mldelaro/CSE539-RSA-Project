@@ -13,6 +13,8 @@ public final class RsaUtility {
 	/// @Param MessageDigest - Hash function to concatenate extra values
 	public static byte[] maskGenerationFunction(byte[] seed, int desiredByteLength, MessageDigest hashFunction ) {
 		byte[] T = new byte[desiredByteLength]; //create empty byte array
+		System.out.println("\n*HASH-SEED:");
+		printBytes(seed);
 		int counter = 0;
 		double digestByteSize = (double)(hashFunction.getDigestLength() / 8.0d);
 		double temp = (desiredByteLength / digestByteSize);
@@ -114,6 +116,21 @@ public final class RsaUtility {
 	/// @Param value - integer to convert
 	public static byte[] intToByteArray(int value) {
 		return ByteBuffer.allocate(4).putInt(value).array();
+	}
+	
+	/// Simple helper function to convert integer into byte[4]
+	/// @Param value - integer to convert
+	public static byte[] xorByte(byte[] blockA, byte[] blockB) {
+		
+		
+		if(blockA.length != blockB.length) {
+			return null;
+		}
+		
+		for(int i = 0; i < blockA.length; i++) {
+			//TODO
+		}
+		return null;
 	}
 
 }

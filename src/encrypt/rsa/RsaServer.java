@@ -31,7 +31,7 @@ public class RsaServer {
 	private String m_LastMessage;
 	
 	private static final int m_nRandomPadLength = 24;
-	private static final int m_nPaddedMessageLength = 1048;
+	private static final int m_nPaddedMessageLength = 1024;
 	
 	/// Public Constructor
 	/// initialize PRG with an IV seed
@@ -96,26 +96,28 @@ public class RsaServer {
 		// if the message is padded, unpad it through OAEP
 		if(isPadded) {
 			byte[] bytesPaddedMessage = biMessage.toByteArray();
-			bytesPaddedMessage = RsaUtility.appendZeroValueBytes(bytesPaddedMessage, 132);
 			
 			int byteIndexEndOfX = (int)((m_nPaddedMessageLength - m_nRandomPadLength) / 8);
 			int byteIndexEndOfY = (int)((m_nPaddedMessageLength) / 8);
 			int byteRandomPadLength = (int)(m_nRandomPadLength/8);
 			
-			byteIndexEndOfX = byteIndexEndOfX - 1;
-			byteIndexEndOfY = byteIndexEndOfY - 1;
+			byteIndexEndOfX = byteIndexEndOfX + 1;
+			byteIndexEndOfY = byteIndexEndOfY + 1;
 			
 			// get byte arrays from fixed lengths
 			byte[] X = null;
 			byte[] Y = null;
 			
-			System.out.print("\n Message = ");
+			System.out.print("\nMessage = ");
 			RsaUtility.printBytes(bytesPaddedMessage);
-			lnjkadsjklndsfajbkadsfgbjkadfsbjk // TODO
+			
 			// get X and Y subsets from incoming block
 			try {
-				X = getByteSubset(bytesPaddedMessage, 0, byteIndexEndOfX);
-				Y = getByteSubset(bytesPaddedMessage, (byteIndexEndOfX+1), byteIndexEndOfY);
+				X = getByteSubset(bytesPaddedMessage, 0, (byteIndexEndOfX-1));
+				Y = getByteSubset(bytesPaddedMessage, (byteIndexEndOfX), byteIndexEndOfY);
+				
+				System.out.println("\nX: " + 0 + " to " + (byteIndexEndOfX - 1));
+				System.out.println("Y: " + byteIndexEndOfX + " to " + byteIndexEndOfY);
 				
 			// catch any array out of bound exceptions
 			} catch (Exception ex) {
@@ -126,7 +128,7 @@ public class RsaServer {
 			//recover the random string r = Y XOR H(X)
 			byte[] HofX = null;
 			try {
-				MessageDigest hash512 = MessageDigest.getInstance("SHA-512");
+				MessageDigest hash512 = MessageDigest.getInstance("SHA-512"); // INSPECT SEED FOR THIS DIGEST >> 00000000X....
 				HofX = RsaUtility.maskGenerationFunction(X, byteRandomPadLength, hash512);
 			} catch (NoSuchAlgorithmException e) {
 				System.out.println("Error");
@@ -143,6 +145,7 @@ public class RsaServer {
 			
 			byte[] r = biY.xor(biHofX).toByteArray();
 			System.out.print("\nServer r    = ");
+			r = RsaUtility.getEndingBytes(r, 3);
 			RsaUtility.printBytes(r);
 			
 		}

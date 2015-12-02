@@ -27,7 +27,7 @@ public class RsaClient {
 	private BigInteger m_biServerPublicExponent;
 		
 	private static final int m_nRandomPadLength = 24;
-	private static final int m_nPaddedMessageLength = 1048;
+	private static final int m_nPaddedMessageLength = 1024;
 
 	/// Public Constructor
 	/// Initialize the random oracle with an IV seed value
@@ -110,12 +110,16 @@ public class RsaClient {
 		byte[] Y = birXORhOfX.toByteArray();
 		Y = RsaUtility.getEndingBytes(Y, randomPadByteLength);
 		
-		System.out.print("\nClient Y       = ");
+		System.out.print("\nClient Y    = ");
 		RsaUtility.printBytes(Y);
 		
 		//concat X and Y
-		paddedMessage = RsaUtility.concatenateByte(X, Y);		
-		return messageToPad;
+		paddedMessage = RsaUtility.concatenateByte(X, Y);
+		
+		System.out.print("\nClient Msg  = ");
+		RsaUtility.printBytes(paddedMessage);
+		System.out.print("\nLength Msg  = " + paddedMessage.length);
+		return paddedMessage;
 	}
 	
 	
@@ -152,6 +156,16 @@ public class RsaClient {
 				BigInteger biCiphertext = biPaddedMessage.modPow(this.getServerPublicExponent(), this.getServerPublicProduct());
 				bytesCiphertext = biCiphertext.toByteArray();
 				
+				System.out.print("\n*padded Message: ");
+				RsaUtility.printBytes(bytesPaddedMessage);
+				
+				System.out.println("\n*padded message length: " + bytesPaddedMessage.length);
+				
+				System.out.print("\n*ciphertext: ");
+				RsaUtility.printBytes(bytesCiphertext);
+				
+				System.out.println("\n*ciphertext length: " + bytesCiphertext.length);
+				
 			// calculate the ciphertext for the unpadded message
 			} else {
 				BigInteger biMessage = new BigInteger(1, bytesMessage); 
@@ -186,6 +200,7 @@ public class RsaClient {
 					BigInteger biPaddedMessage = new BigInteger(1, bytesPaddedMessage);
 					BigInteger biCiphertext = biPaddedMessage.modPow(this.getServerPublicExponent(), this.getServerPublicProduct());
 					bytesCiphertext = biCiphertext.toByteArray();
+					
 					
 				// calculate the ciphertext for the unpadded message
 				} else {
