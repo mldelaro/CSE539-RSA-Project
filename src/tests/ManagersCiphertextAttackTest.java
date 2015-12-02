@@ -1,11 +1,12 @@
 /*
- * @FileName: MalleableAttackTest.java
+ * @FileName: ManagersCiphertextAttackTest.java
  * 
  * @Date: November 2015
  * @Author: Michael Bradley, Matthew de la Rosa
  * 
- * @Description: Simulate a malleable attack on the non-padded message between
+ * @Description: Simulate a chosen ciphertext attack on the padded message between
  * 				Alice and Bob. This attack underlines the importance of having a padded scheme
+ * 				that is properly implemented to not leak any side information.
  */
 
 package tests;
@@ -17,7 +18,7 @@ import encrypt.rsa.MaliciousClient;
 import encrypt.rsa.RsaClient;
 import encrypt.rsa.RsaServer;
 
-public class MalleableAttackTest {
+public class ManagersCiphertextAttackTest {
 
 	private static RsaClient bob;
 	private static MaliciousClient eve;
@@ -53,21 +54,21 @@ public class MalleableAttackTest {
 
 		// Ask bob to generate a ciphertext that is NOT PADDED
 		System.out.println("Client generating ciphertext for message \"12341234\"... ");
-		byte[] bytesBobsCiphertext = bob.getNewCiphertext("12341234", false); // false
+		byte[] bytesBobsCiphertext = bob.getNewCiphertext("12341234", true); // true
 																				// =
-																				// no
 																				// padding
 
 		// Begin Eve's malleable attack on the unpadded message
 		System.out.println("**ATTACK STARTS**");
 		System.out.println("Eve gets bob's ciphertext");
 		eve.setSniffedCiphertext(bytesBobsCiphertext);
-		byte[] evesPayload = eve.startMalleableAttack();
+		String evesDecryptedMessage = eve.startManagersCiphertextAttack();
 
 		// Send payload to alice
-		System.out.println("Eve sends payload to alice...");
-		alice.receiveCiphertext(evesPayload, false); // false = message not
-														// padded
+		System.out.println("Eve has decrypted bobs message...");
+		System.out.println("Eve's message: " + evesDecryptedMessage);
+		alice.receiveCiphertext(bytesBobsCiphertext, true); // true = message
+															// padded
 
 		// Get results from received payload
 		System.out.println("\nPublishing results... ");
