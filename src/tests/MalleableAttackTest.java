@@ -1,3 +1,13 @@
+/*
+ * @FileName: MalleableAttackTest.java
+ * 
+ * @Date: November 2015
+ * @Author: Michael Bradley, Matthew de la Rosa
+ * 
+ * @Description: Simulate a malleable attack on the non-padded message between
+ * 				Alice and Bob. This attack underlines the importance of having a padded scheme
+ */
+
 package tests;
 
 import static org.junit.Assert.*;
@@ -22,6 +32,8 @@ public class MalleableAttackTest {
 	
 	@Test
 	public void performMalleableAttackTest() {
+		
+		// Initialize Alice and publish her public key
 		System.out.println("Initializing server... ");
 		alice = new RsaServer();
 		System.out.println("Server generating public key... ");
@@ -30,30 +42,35 @@ public class MalleableAttackTest {
 		publicProduct = alice.PUBLISH_PublicProduct();
 		publicExponent = alice.PUBLISH_PublicExponent();
 		
-		System.out.println("Initializing clients... ");
+		// Initialize Bob and retrieve the public key
+		System.out.println("Initializing client bob... ");
 		bob = new RsaClient();
-		eve = new MaliciousClient();
-		System.out.println("Client receiving public key...");
+		System.out.println("Bob receiving public key...");
 		bob.receivePublicKey(publicProduct, publicExponent);
+		
+		// Initialize Eve and retrieve the public key
+		System.out.println("Initializing client eve... ");
+		eve = new MaliciousClient();
+		System.out.println("Eve receiving public key...");
 		eve.receivePublicKey(publicProduct, publicExponent);
 		
-		System.out.println("Client generating ciphertext... ");
-		byte[] bytesCiphertext = bob.getNewCiphertext();
-		/*BigInteger biCiphertext = new BigInteger(1, bytesCiphertext);
-		String strCiphertext = new String(biCiphertext.toByteArray());
-		System.out.println("Message: " + strCiphertext);
+		// Ask bob to generate a ciphertext that is NOT PADDED
+		System.out.println("Client generating ciphertext for message \"12341234\"... ");
+		byte[] bytesBobsCiphertext = bob.getNewCiphertext("12341234", false); // false = no padding
 		
-		System.out.println("**ATTACK STARTS**");
-		
+		// Begin Eve's malleable attack on the unpadded message
+		System.out.println("**ATTACK STARTS**");	
 		System.out.println("Eve gets bob's ciphertext");
-		//PROOF OF CONCEPT - multiplying 2m -> deposit twice as much
-		BigInteger biPayload = biCiphertext.multiply(BigInteger.valueOf(2)
-											.modPow(publicExponent,
-													publicProduct));
-		alice.receiveCiphertext(biPayload.toByteArray());
+		eve.setSniffedCiphertext(bytesBobsCiphertext);
+		byte[] evesPayload = eve.startMalleableAttack();
 		
+		// Send payload to alice
+		System.out.println("Eve sends payload to alice...");
+		alice.receiveCiphertext(evesPayload, false); // false = message not padded
+		
+		// Get results from received payload
 		System.out.println("\nPublishing results... ");
 		System.out.println("Alice's Received Message: " + alice.PUBLISH_LastDecryptedMessage());
-		System.out.println("DONE");*/
+		System.out.println("DONE");
 	}
 }

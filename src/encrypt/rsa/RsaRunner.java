@@ -48,13 +48,13 @@ public class RsaRunner {
 		bob.receivePublicKey(publicProduct, publicExponent);
 		
 		System.out.println("Client generating ciphertext... ");
-		byte[] ciphertext = bob.getNewCiphertext();
+		byte[] ciphertext = bob.getNewCiphertext(false);
 		BigInteger biCiphertext = new BigInteger(1, ciphertext);
 		String testval = new String(biCiphertext.toByteArray());
 		System.out.println("Message: " + testval);		
 		
 		System.out.println("Server getting ciphertext... ");
-		alice.receiveCiphertext(ciphertext);
+		alice.receiveCiphertext(ciphertext, false);
 		
 		System.out.println("\nPublishing results... ");
 		System.out.println("Bob's Sent Message: " + bob.PUBLISH_Message());

@@ -1,71 +1,80 @@
+/*
+ * @FileName: RsaClient.java
+ * 
+ * @Date: November 2015
+ * @Author: Michael Bradley, Matthew de la Rosa
+ * 
+ * @Description: RsaClient is responsible for receiving the public key, and generating
+ * 		a Ciphertext for a corresponding message. In a secure transaction, the RsaClient
+ * 		should also pad their message properly in order to prevent any malleable attacks 
+ */
+
 package encrypt.rsa;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.Random;
 import java.util.Scanner;
-
-
+import encrypt.rsa.util.RsaUtility;
 
 public class RsaClient {
 	
-	//TODO: Check security for member initialization
 	private Random m_PRG;
-	private String m_strMessage;
+	private String m_strMessage; // message to be sent
 	
 	private BigInteger m_biServerPublicProduct;
 	private BigInteger m_biServerPublicExponent;
 		
 	private static final int m_nRandomPadLength = 24;
-	private static final int m_nMessageLength = 1024;
 	private static final int m_nPaddedMessageLength = 1048;
 
-	// Public Constructor
+	/// Public Constructor
+	/// Initialize the random oracle with an IV seed value
 	public RsaClient() {
 		m_PRG = new Random(1);
 	}
 	
-	
-	//TODO: Check for secure user input
+	/// get a sample input string from the console
 	private String promptForMessage()
 	{	
 		System.out.println("Client - Input a message: ");
 		Scanner scanner = new Scanner(System.in);
-		String message = scanner.nextLine(); // sanitize?
+		String incomingMesssage = scanner.nextLine();
+		String message = incomingMesssage.toString();
 		scanner.close();
 		return message;
 	}
 	
-	//TODO: send over padded scheme?
+	/// Get the public key from an RsaServer and store it
+	/// @Param publicProduct - n value from the RsaServer
+	/// @Param publicExponent - e value from the RsaServer
 	public void receivePublicKey(BigInteger publicProduct, BigInteger publicExponent) {
 		this.setServerPublicProduct(publicProduct);
 		this.setServerPublicExponent(publicExponent);
 	}
 	
-	// OAETP
+	/// Optimal Asymmetric Encryption Padding
+	/// Apply the OAEP Padding scheme to the message in order to prevent
+	/// malleable attacks and introduce non-deterministic properties using the random oracle
 	private byte[] padMessage(byte[] messageToPad)
-	{		
-		System.out.println("**PAD** - messageToPad: " + new BigInteger(messageToPad).toString());
-		System.out.println("**PAD** - messageLength: " + m_nMessageLength);
-		
+	{
 		//pad m with k1 zeroes
 		byte[] paddedMessage = null;
 		int messageByteLength = (int)(m_nPaddedMessageLength / 8);
-		byte[] m = appendZeroValueBytes(messageToPad, messageByteLength); // pad m with zeros
+		byte[] m = RsaUtility.appendZeroValueBytes(messageToPad, messageByteLength); // pad m with zeros
 		
 		// generate r as a k0-length string
 		byte[] r = new BigInteger((m_nRandomPadLength), m_PRG).toByteArray();
 		int randomPadByteLength = (int)(m_nRandomPadLength / 8);
-		r = appendZeroValueBytes(r, randomPadByteLength); // pad r with zeros
+		r = RsaUtility.appendZeroValueBytes(r, randomPadByteLength); // pad r with zeros
 		
 		//hash and expand r to n - k0 bits using G
 		byte[] GofR = null;
 		int hashByteLength = messageByteLength - randomPadByteLength;
 		try {
 			MessageDigest hash256 = MessageDigest.getInstance("SHA-256");
-		    GofR = maskGenerationFunction(r, hashByteLength ,hash256);		    
+		    GofR = RsaUtility.maskGenerationFunction(r, hashByteLength ,hash256);		    
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		}
@@ -75,176 +84,129 @@ public class RsaClient {
 		BigInteger biGofR = new BigInteger(1, GofR);
 		BigInteger biX = biM.xor(biGofR);
 		byte[] X = biX.toByteArray();
-		X = getEndingBytes(X, hashByteLength);
+		X = RsaUtility.getEndingBytes(X, hashByteLength);
 		
 		//reduce X to k0 bits
 		byte[] HofX = null;
 		try {
 			MessageDigest hash512 = MessageDigest.getInstance("SHA-512");
-			HofX = maskGenerationFunction(X, randomPadByteLength, hash512);
+			HofX = RsaUtility.maskGenerationFunction(X, randomPadByteLength, hash512);
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		}
+		
+		System.out.print("Client r    = ");
+		RsaUtility.printBytes(r);
+		
+		System.out.print("\nClient H(X) = ");
+		RsaUtility.printBytes(HofX);
+		
+		
 		
 		//XOR r and H(X)
 		BigInteger biR = new BigInteger(1, r);
 		BigInteger biHofX = new BigInteger(1, HofX);
 		BigInteger birXORhOfX = biR.xor(biHofX);
 		byte[] Y = birXORhOfX.toByteArray();
+		Y = RsaUtility.getEndingBytes(Y, randomPadByteLength);
+		
+		System.out.print("\nClient Y       = ");
+		RsaUtility.printBytes(Y);
 		
 		//concat X and Y
-		paddedMessage = concatenateByte(X, Y);
-		
-		System.out.println("**PAD** - resulting pad with size: " + paddedMessage.length);
-		printBytes(paddedMessage);
+		paddedMessage = RsaUtility.concatenateByte(X, Y);		
 		return messageToPad;
 	}
 	
-	/* takes an input block and a desired output length 
-	 * uses the SHA-2 family based hash function to 
-	 * 
-	 */
-	private byte[] maskGenerationFunction(byte[] seed, int desiredByteLength, MessageDigest hashFunction ) {
-		byte[] T = new byte[desiredByteLength]; //create empty byte array
-		int counter = 0;
-		double digestByteSize = (double)(hashFunction.getDigestLength() / 8.0d);
-		double temp = (desiredByteLength / digestByteSize);
-		int endIndex = (int)(Math.ceil(temp));
-		for(counter = 0; counter < endIndex; counter++) {
-			// convert count to 4-byte array
-			byte[] byteCounter = intToByteArray(counter);
-			
-			//concatenate seed and counter
-			byte[] blockToHash;
-			blockToHash = concatenateByte(seed, byteCounter);
-			
-			//hash the concatenation
-			hashFunction.update(blockToHash);
-			byte[] blockToConcatenate;
-			blockToConcatenate = hashFunction.digest();
-			
-			// add to octet string
-			T = concatenateByte(T, blockToConcatenate);
-		}
-		
-		byte[] output = getEndingBytes(T, desiredByteLength);
-		//return leading desired number of bytes
-		return output;
+	
+	/// prompt the user for a new message
+	private void createNewMessage()
+	{
+		String m = promptForMessage();
+		this.setMessage(m);
 	}
 	
-	private byte[] intToByteArray(int value) {
-		return ByteBuffer.allocate(4).putInt(value).array();
-	}
-	
-	// for use in mask generation function (output)
-	private byte[] getEndingBytes(byte[] block, int bytesToKeep) {
-		byte[] outputBlock = new byte[bytesToKeep];
-		
-		if(bytesToKeep > block.length) {
-			outputBlock = appendZeroValueBytes(block, bytesToKeep);
-		} else {
-			for(int i = 0; i < bytesToKeep; i++) {
-				int indexToCopy = (block.length - (bytesToKeep - i));
-				outputBlock[i] = block[indexToCopy];
-			}
-		}
-		
-		return outputBlock;
-	}
-	
-	
-	/*
-	private byte[] getByteSubset(byte[] blockSet, int firstIndex, int lastIndex) {
-		if((lastIndex - firstIndex) < 0) {
-			return null;
-		}
-		
-		int setIndex = 0;
-		int blockLength = lastIndex - firstIndex;
-		
-		byte[] blockSubset = new byte[blockLength];
-		
-		for(setIndex = firstIndex; setIndex < lastIndex; setIndex++) {
-			int subsetIndex = setIndex - firstIndex;
-			blockSubset[subsetIndex] = blockSet[setIndex];
-		}
-		
-		return blockSubset;
-	}*/
-	
-	private void printBytes(byte[] block) {
-		for(int i = 0; i < block.length; i++) {
-			String s1 = String.format("%8s", Integer.toBinaryString(block[i] & 0xFF)).replace(' ', '0');
-			System.out.print(s1 + " "); // 10000001
-		}
-	}
-	
-	private byte[] appendZeroValueBytes(byte[] blockA, int desiredByteLength) {
-		int oldByteLength = blockA.length;
-		
-		if(oldByteLength < desiredByteLength) {
-			int neededZeroBlocks = (desiredByteLength- oldByteLength) ;
-			byte[] paddedBlock = new byte[desiredByteLength];
-			for(int i = 0; i < blockA.length; i++) {
-				paddedBlock[i] = blockA[i];
-			}
-			for(int i = blockA.length; i < neededZeroBlocks; i++) {
-				paddedBlock[i] = (byte) 0;
-			}
-			return paddedBlock;
-		} else {
-			return blockA;
-		}
-	}
-	
-	private byte[] concatenateByte(byte[] blockA, byte[] blockB) {
-		int newBlockLength = blockA.length + blockB.length;
-		byte[] newBlock = new byte[newBlockLength];
-		for(int i = 0; i < blockA.length; i++) {
-			newBlock[i] = blockA[i];
-		}
-		
-		for(int i = 0; i < blockB.length; i++) {
-			newBlock[i+blockA.length] = blockB[i];
-		}
-		return newBlock;
-	}
-	
+	/// set the given parameter as the message
 	private void createNewMessage(String newMessage)
 	{
-		if(newMessage == null) {
-			String m = promptForMessage();
-			this.setMessage(m);
-		} else {
-			this.setMessage(newMessage);
-		}
+		this.setMessage(newMessage);
 	}
 	
-	public byte[] getNewCiphertext()
+	/// generate a new ciphertext by prompting the user for console input
+	public byte[] getNewCiphertext(boolean isPadded)
 	{
-		createNewMessage(null);
+		createNewMessage();
 		byte[] bytesCiphertext = null;
 		
-		if(this.getMessage() != null) { //TODO: security regarding accessing private members in public method
-			//TODO: check message for null security
+		// ensure that there is a message to pad
+		if(this.getMessage() != null) {
+			// create bytes for message
 			byte[] bytesMessage = null;
-			byte[] bytesPaddedMessage = null;
-			bytesMessage = m_strMessage.getBytes();// TODO: accessing private member?
-			bytesPaddedMessage = padMessage(bytesMessage);
+			bytesMessage = this.getMessage().getBytes();
 			
-			BigInteger biPaddedMessage = new BigInteger(1, bytesPaddedMessage);
-			BigInteger biCiphertext = biPaddedMessage.modPow(this.getServerPublicExponent(), this.getServerPublicProduct());			
-			bytesCiphertext = biCiphertext.toByteArray();
-			
+			// calculate the ciphertext for the padded message
+			if(isPadded) {
+				byte[] bytesPaddedMessage = null;
+				bytesPaddedMessage = padMessage(bytesMessage);
+				BigInteger biPaddedMessage = new BigInteger(1, bytesPaddedMessage);
+				BigInteger biCiphertext = biPaddedMessage.modPow(this.getServerPublicExponent(), this.getServerPublicProduct());
+				bytesCiphertext = biCiphertext.toByteArray();
+				
+			// calculate the ciphertext for the unpadded message
+			} else {
+				BigInteger biMessage = new BigInteger(1, bytesMessage); 
+				BigInteger biCiphertext = biMessage.modPow(this.getServerPublicExponent(), this.getServerPublicProduct());			
+				bytesCiphertext = biCiphertext.toByteArray();
+			}			
 			return bytesCiphertext;
+		
 		} else {
-			return null;
+			return null; // no message to send, no ciphertext to return
 		}
 	}
 	
+	
+	
+	/// generate a new ciphertext by prompting the user for console input
+		public byte[] getNewCiphertext(String message, boolean isPadded)
+		{
+			this.setMessage(message);
+			byte[] bytesCiphertext = null;
+			
+			// ensure that there is a message to pad
+			if(this.getMessage() != null) {
+				// create bytes for message
+				byte[] bytesMessage = null;
+				bytesMessage = this.getMessage().getBytes();
+				
+				// calculate the ciphertext for the padded message
+				if(isPadded) {
+					byte[] bytesPaddedMessage = null;
+					bytesPaddedMessage = padMessage(bytesMessage);
+					BigInteger biPaddedMessage = new BigInteger(1, bytesPaddedMessage);
+					BigInteger biCiphertext = biPaddedMessage.modPow(this.getServerPublicExponent(), this.getServerPublicProduct());
+					bytesCiphertext = biCiphertext.toByteArray();
+					
+				// calculate the ciphertext for the unpadded message
+				} else {
+					BigInteger biMessage = new BigInteger(1, bytesMessage); 
+					BigInteger biCiphertext = biMessage.modPow(this.getServerPublicExponent(), this.getServerPublicProduct());			
+					bytesCiphertext = biCiphertext.toByteArray();
+				}			
+				return bytesCiphertext;
+			
+			} else {
+				return null; // no message to send, no ciphertext to return
+			}
+		}
+		
+	
+	/* PUBLIC Methods & Access functions */
 	public String PUBLISH_Message() {
 		return this.getMessage();
 	}
+	
+	/* GETTERS & SETTERS */
 
 
 	private String getMessage() {

@@ -1,92 +1,178 @@
+/*
+ * @FileName: RsaServer.java
+ * 
+ * @Date: November 2015
+ * @Author: Michael Bradley, Matthew de la Rosa
+ * 
+ * @Description: RsaServer is responsible for generating the public key and private key, and
+ * 		decrypting ciphertexts received. In a secure transaction, the RsaServer
+ * 		should also unpad their message properly in order to prevent any malleable attacks 
+ */
+
 package encrypt.rsa;
 import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Random;
+
+import encrypt.rsa.util.RsaUtility;
 
 public class RsaServer {
 	
-	private static final int m_PublicKeyLength = 0; //TODO: Determine key length
+	private Random m_PRG; // Used to generate random values
 	
-	private Random m_PRG;
-	private LargeInt m_PrivateKey;
-	private LargeInt m_RandomPrime1;
-	private LargeInt m_RandomPrime2;
-	private LargeInt m_PublicProduct;
-	private LargeInt m_PublicExponent;
+	private BigInteger m_PrivateKey;	// d - used to decrypt messages
+	private BigInteger m_RandomPrime1;	// p - used to create the public RSA modulus
+	private BigInteger m_RandomPrime2;	// q - used to create the public RSA modulus
+	private BigInteger m_PublicProduct;	// e - used as part of the public key
+	private BigInteger m_PublicExponent;// n - used as part of the public key
+	
 	private byte[] m_PublicKey;
 	private String m_LastMessage;
-		
+	
+	private static final int m_nRandomPadLength = 24;
+	private static final int m_nPaddedMessageLength = 1048;
+	
+	/// Public Constructor
+	/// initialize PRG with an IV seed
 	public RsaServer() {
 		m_PRG = new Random(1);
 	}
 	
+	/// Generate a public key that is about the size 1024 bits
 	public void generatePublicKey() {
-		//Generate two random primes
-		LargeInt p1 = new LargeInt(new BigInteger(512, 99, m_PRG).toByteArray());
-		LargeInt p1minus1 = p1.minus(LargeInt.ONE);
+		//Generate two random large primes
+		BigInteger p1 = new BigInteger(512, 99, m_PRG);
+		BigInteger p1minus1 = p1.subtract(BigInteger.ONE);
 		this.setRandomPrime1(p1);
 		
-		LargeInt p2 = new LargeInt(new BigInteger(512, 99, m_PRG).toByteArray());
-		LargeInt p2minus1 = p2.minus(LargeInt.ONE);
+		BigInteger p2 = new BigInteger(512, 99, m_PRG);
+		BigInteger p2minus1 = p2.subtract(BigInteger.ONE);
 		this.setRandomPrime2(p2);
 		
 		//Get the product of the random primes
-		LargeInt n = p1.multiply(p2);
+		BigInteger n = p1.multiply(p2);
 		this.setPublicProduct(n);
 
 		//Calculate Phi of product
-		LargeInt phiOfN = p1minus1.multiply(p2minus1);
+		BigInteger phiOfN = p1minus1.multiply(p2minus1);
 		
 		//Generate public exponent
-		//LargeInt publicExponent = LargeInt.ZERO;
-		//publicExponent = publicExponent.plus(LargeInt.ONE);
-		//publicExponent = publicExponent.plus(LargeInt.ONE);
-		//publicExponent = publicExponent.plus(LargeInt.ONE);
-		LargeInt publicExponent = new LargeInt(3);
+		BigInteger publicExponent = BigInteger.ZERO;
+		publicExponent = publicExponent.add(BigInteger.ONE);
+		publicExponent = publicExponent.add(BigInteger.ONE);
+		publicExponent = publicExponent.add(BigInteger.ONE);
 		
-		/*TODO: Expand on Euclid's extended algorithm ?
-		 * Find a suitable public 'e' (e = 3 is sufficient for now) 
-		 * Choose d and e S.T d*e = 1 mod phi(n)*/
-		//System.out.println("**DEBUG** asdfsdfsdf");
-
-		while(new BigInteger(publicExponent.toByteArray()).gcd(new BigInteger(phiOfN.toByteArray())).compareTo(BigInteger.ONE) != 0 ||
-				publicExponent.compareTo(LargeInt.ONE) == 0) {
-			System.out.println("**DEBUG** asdfsdfsdf");
-			publicExponent = new LargeInt(new BigInteger(10, m_PRG).toByteArray());
+		// determine a sufficient value for the public exponent (default e = 3)
+		while(publicExponent.gcd(phiOfN).compareTo(BigInteger.ONE) != 0 ||
+				publicExponent.compareTo(BigInteger.ONE) == 0) {
+			publicExponent = new BigInteger(10, m_PRG);
 		}
-		System.out.println("**DEBUG** gcd - " + new BigInteger(publicExponent.toByteArray()).toString() + " : " + new BigInteger(publicExponent.toByteArray()).gcd(new BigInteger(phiOfN.toByteArray())));
 		this.setPublicExponent(publicExponent);
 		
 		//Calculate private key
-		LargeInt two = new LargeInt(2);
-		LargeInt one = new LargeInt(1);
-		LargeInt privateKey = two.multiply(phiOfN);
-		privateKey = privateKey.plus(one);
+		BigInteger two = BigInteger.valueOf(2);
+		BigInteger one = BigInteger.valueOf(1);
+		BigInteger privateKey = two.multiply(phiOfN);
+		privateKey = privateKey.add(one);
 		privateKey = privateKey.divide(publicExponent);
 		this.setPrivateKey(privateKey);
 		
-		System.out.println("Alice calculates Shares: ");
-		System.out.println("n = " + new BigInteger(n.toByteArray()).toString());
-		System.out.println("e = " + new BigInteger(publicExponent.toByteArray()).toString());
+		System.out.println("Alice calculates and shares: ");
+		System.out.println("n = " + n.toString());
+		System.out.println("e = " + publicExponent.toString());
 	}
 	
-	public void receiveCiphertext(byte[] bytesCiphertext) {
-		LargeInt biCiphertext = new LargeInt(bytesCiphertext);
-		String testval = new String(biCiphertext.toByteArray());
-		System.out.println("Server received: " + testval);
+	/// Recieve the incoming ciphertext and decrypt with the private key
+	/// @Param bytesCiphertext - incoming ciphertext block
+	public void receiveCiphertext(byte[] bytesCiphertext, boolean isPadded) {
+		// convert byte blocks to big integer to perform mod power
+		BigInteger biCiphertext = new BigInteger(1, bytesCiphertext);
 		
+		// perform modular exponentiation to retrieve the message
 		System.out.println("Alice receives c and decrypts with private key");
-		LargeInt biMessage = new LargeInt(new BigInteger(biCiphertext.toByteArray()).modPow(new BigInteger(this.getPrivateKey().toByteArray()), new BigInteger(this.getPublicProduct().toByteArray())).toByteArray());
+		BigInteger biMessage = biCiphertext.modPow(this.getPrivateKey(), this.getPublicProduct());
 		
+		// if the message is padded, unpad it through OAEP
+		if(isPadded) {
+			byte[] bytesPaddedMessage = biMessage.toByteArray();
+			bytesPaddedMessage = RsaUtility.appendZeroValueBytes(bytesPaddedMessage, 132);
+			
+			int byteIndexEndOfX = (int)((m_nPaddedMessageLength - m_nRandomPadLength) / 8);
+			int byteIndexEndOfY = (int)((m_nPaddedMessageLength) / 8);
+			int byteRandomPadLength = (int)(m_nRandomPadLength/8);
+			
+			byteIndexEndOfX = byteIndexEndOfX - 1;
+			byteIndexEndOfY = byteIndexEndOfY - 1;
+			
+			// get byte arrays from fixed lengths
+			byte[] X = null;
+			byte[] Y = null;
+			
+			System.out.print("\n Message = ");
+			RsaUtility.printBytes(bytesPaddedMessage);
+			lnjkadsjklndsfajbkadsfgbjkadfsbjk // TODO
+			// get X and Y subsets from incoming block
+			try {
+				X = getByteSubset(bytesPaddedMessage, 0, byteIndexEndOfX);
+				Y = getByteSubset(bytesPaddedMessage, (byteIndexEndOfX+1), byteIndexEndOfY);
+				
+			// catch any array out of bound exceptions
+			} catch (Exception ex) {
+				System.out.println("Error");
+				return;
+			}
+			
+			//recover the random string r = Y XOR H(X)
+			byte[] HofX = null;
+			try {
+				MessageDigest hash512 = MessageDigest.getInstance("SHA-512");
+				HofX = RsaUtility.maskGenerationFunction(X, byteRandomPadLength, hash512);
+			} catch (NoSuchAlgorithmException e) {
+				System.out.println("Error");
+				return;
+			}
+			
+			BigInteger biY = new BigInteger(1, Y);
+			BigInteger biHofX = new BigInteger(1, HofX);
+			
+			System.out.print("\nServer Y    = ");
+			RsaUtility.printBytes(Y);
+			System.out.print("\nServer H(X) = ");
+			RsaUtility.printBytes(HofX);
+			
+			byte[] r = biY.xor(biHofX).toByteArray();
+			System.out.print("\nServer r    = ");
+			RsaUtility.printBytes(r);
+			
+		}
+		
+		//convert BigInteger back to string message
 		String strMessage = new String(biMessage.toByteArray());
-		System.out.println("Decrypted Message: " + strMessage);
+		System.out.println("*ALICE-Private* Decrypted Message: " + strMessage);
 		this.setLastDecryptedMessage(strMessage);
 	}
 	
-	public LargeInt PUBLISH_PublicProduct() {
+	
+	private byte[] getByteSubset(byte[] block, int firstIndex, int lastIndex) {
+		if((lastIndex - firstIndex) < 0) {
+			return null;
+		}
+		int blockLength = lastIndex - firstIndex;
+		byte[] newBlock = new byte[blockLength];
+		for(int i = 0; i < blockLength; i++) {
+			newBlock[i] = block[firstIndex + i];
+		}
+		return newBlock;
+	}
+	
+	/* Public Access functions */
+	
+	public BigInteger PUBLISH_PublicProduct() {
 		return this.m_PublicProduct;
 	}
 	
-	public LargeInt PUBLISH_PublicExponent() {
+	public BigInteger PUBLISH_PublicExponent() {
 		return this.m_PublicExponent;
 	}
 	
@@ -94,43 +180,45 @@ public class RsaServer {
 		return this.m_LastMessage;
 	}
 	
-	private LargeInt getPrivateKey() {
+	private BigInteger getPrivateKey() {
 		return m_PrivateKey;
 	}
 
-	private void setPrivateKey(LargeInt privateKey) {
+	/*SETTERS & GETTERS*/
+	
+	private void setPrivateKey(BigInteger privateKey) {
 		this.m_PrivateKey = privateKey;
 	}
 
-	private LargeInt getRandomPrime1() {
+	private BigInteger getRandomPrime1() {
 		return m_RandomPrime1;
 	}
 
-	private void setRandomPrime1(LargeInt randomPrime1) {
+	private void setRandomPrime1(BigInteger randomPrime1) {
 		this.m_RandomPrime1 = randomPrime1;
 	}
 
-	private LargeInt getRandomPrime2() {
+	private BigInteger getRandomPrime2() {
 		return m_RandomPrime2;
 	}
 
-	private void setRandomPrime2(LargeInt randomPrime2) {
+	private void setRandomPrime2(BigInteger randomPrime2) {
 		this.m_RandomPrime2 = randomPrime2;
 	}
 
-	private LargeInt getPublicProduct() {
+	private BigInteger getPublicProduct() {
 		return m_PublicProduct;
 	}
 
-	private void setPublicProduct(LargeInt publicProduct) {
+	private void setPublicProduct(BigInteger publicProduct) {
 		this.m_PublicProduct = publicProduct;
 	}
 
-	private LargeInt getPublicExponent() {
+	private BigInteger getPublicExponent() {
 		return m_PublicExponent;
 	}
 
-	private void setPublicExponent(LargeInt publicExponent) {
+	private void setPublicExponent(BigInteger publicExponent) {
 		this.m_PublicExponent = publicExponent;
 	}
 
