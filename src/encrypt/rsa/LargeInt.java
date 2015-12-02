@@ -2,12 +2,26 @@ package encrypt.rsa;
 
 import java.math.*;
 
-public class LargeInt implements Comparable<LargeInt> {
+// OBJ-07J: uncopyable
+public final class LargeInt implements Comparable<LargeInt> {
 	
-	public static final LargeInt ZERO = new LargeInt(0);
-	public static final LargeInt ONE = new LargeInt(1);
-	public static final LargeInt TEN = new LargeInt(10);
-	
+	// OBJ-01J: vWe need separate values for this because we can't go and
+	// make a public static field; adversary could potentially modify it
+	// Java's BigInteger, as far as we can tell, doesn't do this?
+	private static final LargeInt ZERO = new LargeInt(0);
+	private static final LargeInt ONE = new LargeInt(1);
+	private static final LargeInt TEN = new LargeInt(10);
+	public static LargeInt ZERO() {
+		return new LargeInt(0);
+	}
+	public static LargeInt ONE() {
+		return new LargeInt(1);
+	}
+	public static LargeInt TEN() {
+		return new LargeInt(10);
+	}
+
+	// Bit array represeting SIZE-bit integer.
 	private boolean[] value;
 	
 	// Size in bits of the int we're representing.
@@ -15,7 +29,9 @@ public class LargeInt implements Comparable<LargeInt> {
 	// computational reasons.
 	// this is GLOBAL, ACROSS THE ENTIRE IMPLEMENTATION.
 	// DO NOT CHANGE THIS
-	public static final int SIZE = 2000;
+	// also, we don't have to make this private since this is a
+	// primitive type (not a reference)
+	public static final int SIZE = 2200;
 	
 	// Initializes to 0
 	public LargeInt() {
@@ -71,6 +87,14 @@ public class LargeInt implements Comparable<LargeInt> {
 	// Sets bit at pos to value
 	public void setPos(int pos, boolean b) {
 		value[pos] = b;
+	}
+	
+	// Returns index of most significant bit of this
+	public int log() {
+		for (int i = 0; i < SIZE; i++) {
+			if (value[i]) return SIZE-i-1;
+		}
+		return 0; // don't call this on 0
 	}
 	
 	// Sets value from an integer
@@ -182,6 +206,7 @@ public class LargeInt implements Comparable<LargeInt> {
 	// since it won't keep track of the carry bit.
 	public LargeInt plus(LargeInt v) {
 		boolean carry = false;
+		// Follows OBJ-06J since this copies input.
 		boolean[] op2 = v.getValue();
 		boolean[] result = new boolean[SIZE];
 		
@@ -201,7 +226,7 @@ public class LargeInt implements Comparable<LargeInt> {
 	// since it won't keep track of the carry bit.
 	public LargeInt minus(LargeInt v) {
 		boolean borrow = false;
-		//System.out.printf("%d\n",this.toInt());
+		// Follows OBJ-06J since this copies input.
 		boolean[] op2 = v.getValue();
 		boolean[] result = new boolean[SIZE];
 		
@@ -220,6 +245,7 @@ public class LargeInt implements Comparable<LargeInt> {
 	// We assume no overflow.  i.e. this will break if it overflows
 	// since it won't keep track of the carry bit.
 	public LargeInt multiply(LargeInt v) {
+		// Follows OBJ-06J since this copies input.
 		boolean[] op2 = v.getValue();
 		LargeInt result = new LargeInt();
 		
@@ -234,50 +260,53 @@ public class LargeInt implements Comparable<LargeInt> {
 		return result;
 	}
 	
-	public LargeInt multiply(boolean[] op2) {
+	/*public LargeInt multiplymod(LargeInt v, LargeInt modulus) {
+		boolean[] op2 = v.getValue();
 		LargeInt result = new LargeInt();
+		LargeInt thismod = this;
 		
 		for (int i = SIZE-1; i >= 0; i--) {
-			
+			thismod = thismod.lshift(1).mod(modulus);
 			if (op2[i]) {
-				result = result.plus(this.lshift(SIZE-1-i));
+				result = result.plus(thismod).mod(modulus);
 			}
 			//System.out.printf("%d  ", i);
 		}
 		
 		return result;
-	}
+	}*/
 	
-	// Computes division somewhat efficiently using binary search.
+	// Computes division  using binary search.
 	public LargeInt divide(LargeInt d) {
-		boolean[] result = new boolean[SIZE];
-		//LargeInt result = new LargeInt();
+		// Follows OBJ-06J since this copies input.
+		LargeInt op2 = new LargeInt(d);
+		LargeInt result = new LargeInt();
 		for (int i = SIZE/2; i<SIZE; i++) {
 			
-			//result.setPos(i,  true);
-			result[i] = true;
-			if (this.compareTo(d.multiply(result)) < 0) {
-				//result.setPos(i, false);
-				result[i] = false;
+			result.setPos(i,  true);
+			if (this.compareTo(op2.multiply(result)) < 0) {
+				result.setPos(i, false);
 			}	
 			
 		}
 		
-		return new LargeInt(result);
+		return result;
 	}
 	
 	// Computes this mod modulus and returns the result.
 	// Used to use successive subtraction, until I tried it with
 	// really large numbers, which prompted that ^ algorithm.
 	public LargeInt mod(LargeInt modulus) {
+		// Follows OBJ-06J since this copies input.
+		LargeInt n = new LargeInt(modulus);
 		
-		LargeInt d = this.divide(modulus);
-		LargeInt result =  this.minus(modulus.multiply(d));
+		LargeInt d = this.divide(n);
+		LargeInt result =  this.minus(n.multiply(d));
 		return result; 
 		
 	}
 	
-	// Computes this  squared and returns it.
+	// Computes this squared and returns it.
 	public LargeInt square() {
 		return this.multiply(this);
 	}
@@ -294,21 +323,24 @@ public class LargeInt implements Comparable<LargeInt> {
 	// Computes this^e mod modulus using repeated squaring.
 	// We now have a method of computing RSA modulus with numbers
 	// of arbitrary bit size.
-	public LargeInt expmod(LargeInt e, LargeInt modulus) {
+	public LargeInt expmod(LargeInt exp, LargeInt modulus) {
+		// Follows OBJ-06J since this copies input.
+		LargeInt e = new LargeInt(exp);
+		LargeInt n = new LargeInt(modulus);
 		
 		// result is always going to be the "latest" square
 		LargeInt result = new LargeInt(1);
-		LargeInt square = new LargeInt(this).mod(modulus);
+		LargeInt square = new LargeInt(this).mod(n);
 		
 		// iterate through by dividing e by 2
 		// represents computing binary representation of e
 		while (e.nonzero()) {
 			
 			if (e.odd())
-				result = result.multiply(square).mod(modulus);
+				result = result.multiply(square).mod(n);
 
 			e = e.rshift(1);
-			square = square.multiply(square).mod(modulus);
+			square = square.multiply(square).mod(n);
 		}
 		
 		return result;
@@ -316,8 +348,10 @@ public class LargeInt implements Comparable<LargeInt> {
 	
 	// Computes this^e using successive squaring
 	// we assume there's no overflow error in this
-	public LargeInt exp(LargeInt e) {
-		
+	public LargeInt exp(LargeInt exp) {
+		// Follows OBJ-06J since this copies input.
+		LargeInt e = new LargeInt(exp);
+				
 		// result is always going to be the "latest" square
 		LargeInt result = new LargeInt(1);
 		LargeInt square = new LargeInt(this);
@@ -366,6 +400,7 @@ public class LargeInt implements Comparable<LargeInt> {
 	// AND
 	public LargeInt and(LargeInt v) {
 		boolean[] result = new boolean[SIZE];
+		// Follows OBJ-06J since this copies input.
 		boolean[] op2 = v.getValue();
 		
 		for (int i = 0; i < SIZE; i++) result[i] = value[i] & op2[i];
@@ -376,6 +411,7 @@ public class LargeInt implements Comparable<LargeInt> {
 	// OR
 	public LargeInt or(LargeInt v) {
 		boolean[] result = new boolean[SIZE];
+		// Follows OBJ-06J since this copies input.
 		boolean[] op2 = v.getValue();
 		
 		for (int i = 0; i < SIZE; i++) result[i] = value[i] | op2[i];
@@ -386,6 +422,7 @@ public class LargeInt implements Comparable<LargeInt> {
 	// XOR
 	public LargeInt xor(LargeInt v) {
 		boolean[] result = new boolean[SIZE];
+		// Follows OBJ-06J since this copies input.
 		boolean[] op2 = v.getValue();
 		
 		for (int i = 0; i < SIZE; i++) result[i] = value[i] ^ op2[i];
@@ -394,7 +431,9 @@ public class LargeInt implements Comparable<LargeInt> {
 	}
 	
 	// computes gcd via Euclidean algo
-	public LargeInt gcd(LargeInt b) {
+	public LargeInt gcd(LargeInt op2) {
+		// Follows OBJ-06J since this copies input.
+		LargeInt b = new LargeInt(op2);
 		
 		if (this.compareTo(b) < 0) return b.gcd(this);
 		else {
@@ -437,21 +476,19 @@ public class LargeInt implements Comparable<LargeInt> {
 	}*/
 	
 	// Writes this in decimal.
+	// NOTE: slow.
 	public String toString() {
 		
 		if (this.compareTo(ZERO) == 0) return "0";
 		else {
 			StringBuffer s = new StringBuffer();
 			
-			
-			
-			
 			LargeInt i = this;
-			LargeInt j = new LargeInt();
+			LargeInt j;
 			do {
-				j = i.mod(TEN);
-				s.append(j.toInt());
-				i = i.divide(TEN);
+				j = i.divide(TEN);
+				s.append(i.minus(j.multiply(TEN)).toInt());
+				i = j;
 				System.out.printf("%s\n",s);
 			} while (i.compareTo(ZERO) > 0);
 			return new String(s.reverse());
@@ -459,6 +496,10 @@ public class LargeInt implements Comparable<LargeInt> {
 	}
 	
 	// compareTo
+	// MET-10J: This follows the compareTo protocol, i.e.
+	// it's transitive, reflexive, and 2 numbers that return 0 on this
+	// will always return the same value.
+	// It is equivalent to the standard compareTo for primitive #s
 	public int compareTo(LargeInt v) {
 		boolean[] op2 = v.getValue();
 
@@ -471,11 +512,13 @@ public class LargeInt implements Comparable<LargeInt> {
 	}
 	
 	public void setValue(boolean[] newValue) {
+		// OBJ-06J: copy the value, not the reference.
 		for (int i = 0; i < SIZE; i++)
 			value[i] = newValue[i];
 	}
 	
 	public boolean[] getValue() {
+		// OBJ-05J: do not return a reference.  copy instead.
 		boolean[] returnValue = new boolean[SIZE];
 		for (int i = 0; i < SIZE; i++)
 			returnValue[i] = value[i];
