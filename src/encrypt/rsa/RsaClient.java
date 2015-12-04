@@ -27,8 +27,8 @@ public class RsaClient {
 	private BigInteger m_biServerPublicProduct;
 	private BigInteger m_biServerPublicExponent;
 
-	private static final int m_nRandomPadLength = 24;
-	private static final int m_nPaddedMessageLength = 1024;
+	private static final int m_nRandomPadLength = 24; // in bits
+	private static final int m_nPaddedMessageLength = 1024; // in bits
 
 	/// Public Constructor
 	/// Initialize the random oracle with an IV seed value
@@ -61,25 +61,21 @@ public class RsaClient {
 	private byte[] padMessage(byte[] messageToPad) {
 		// pad m with k1 zeroes
 		byte[] paddedMessage = null;
-		int messageByteLength = (int) (m_nPaddedMessageLength / 8);
-		byte[] m = RsaUtility.appendZeroValueBytes(messageToPad, messageByteLength); // pad
-		// m
-		// with
-		// zeros
+		int paddedMessageByteLength = (int) (m_nPaddedMessageLength / 8);
+		int randomPadByteLength = (int) (m_nRandomPadLength / 8);
+		int messageByteLength = paddedMessageByteLength - randomPadByteLength;
+		
+		byte[] m = RsaUtility.appendZeroValueBytes(messageToPad, messageByteLength);
 
 		// generate r as a k0-length string
 		byte[] r = new BigInteger((m_nRandomPadLength), m_PRG).toByteArray();
-		int randomPadByteLength = (int) (m_nRandomPadLength / 8);
-		r = RsaUtility.appendZeroValueBytes(r, randomPadByteLength); // pad r
-		// with
-		// zeros
+		r = RsaUtility.appendZeroValueBytes(r, randomPadByteLength); // pad r with zeros
 
 		// hash and expand r to n - k0 bits using G
 		byte[] GofR = null;
-		int hashByteLength = messageByteLength - randomPadByteLength;
 		try {
 			MessageDigest hash256 = MessageDigest.getInstance("SHA-256");
-			GofR = RsaUtility.maskGenerationFunction(r, hashByteLength, hash256);
+			GofR = RsaUtility.maskGenerationFunction(r, messageByteLength, hash256);
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		}
@@ -89,8 +85,8 @@ public class RsaClient {
 		BigInteger biGofR = new BigInteger(1, GofR);
 		BigInteger biX = biM.xor(biGofR);
 		byte[] X = biX.toByteArray();
-		X = RsaUtility.getEndingBytes(X, hashByteLength);
-
+		X = RsaUtility.getEndingBytes(X, messageByteLength);
+		
 		// reduce X to k0 bits
 		byte[] HofX = null;
 		try {

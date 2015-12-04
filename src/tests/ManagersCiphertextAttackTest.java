@@ -19,15 +19,15 @@ import encrypt.rsa.RsaClient;
 import encrypt.rsa.RsaServer;
 
 public class ManagersCiphertextAttackTest {
-
+	
 	private static RsaClient bob;
 	private static MaliciousClient eve;
 	private static RsaServer alice;
-
+	
 	// public key from alice
 	private BigInteger publicProduct;
 	private BigInteger publicExponent;
-
+	
 	@Test
 	public void performMalleableAttackTest() {
 
@@ -54,9 +54,7 @@ public class ManagersCiphertextAttackTest {
 
 		// Ask bob to generate a ciphertext that is NOT PADDED
 		System.out.println("Client generating ciphertext for message \"12341234\"... ");
-		byte[] bytesBobsCiphertext = bob.getNewCiphertext("12341234", true); // true
-																				// =
-																				// padding
+		byte[] bytesBobsCiphertext = bob.getNewCiphertext("12341234", true); // true = padding
 
 		// Begin Eve's malleable attack on the unpadded message
 		System.out.println("**ATTACK STARTS**");
@@ -67,8 +65,7 @@ public class ManagersCiphertextAttackTest {
 		// Send payload to alice
 		System.out.println("Eve has decrypted bobs message...");
 		System.out.println("Eve's message: " + evesDecryptedMessage);
-		alice.receiveCiphertext(bytesBobsCiphertext, true); // true = message
-															// padded
+		alice.receiveCiphertext(bytesBobsCiphertext, true); // true = message padded
 
 		// Get results from received payload
 		System.out.println("\nPublishing results... ");
