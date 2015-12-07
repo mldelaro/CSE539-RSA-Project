@@ -262,8 +262,9 @@ public final class LargeInt implements Comparable<LargeInt> {
 	 * return result; }
 	 */
 
+	/*
 	// Computes division using binary search.
-	public LargeInt divide(LargeInt d) {
+	public LargeInt divide_OLD(LargeInt d) {
 		// Follows OBJ-06J since this copies input.
 		LargeInt op2 = new LargeInt(d);
 		LargeInt result = new LargeInt();
@@ -276,6 +277,28 @@ public final class LargeInt implements Comparable<LargeInt> {
 
 		}
 
+		return result;
+	}*/
+
+	// Computes division using shift and subtract.
+	public LargeInt divide(LargeInt d) {
+		// Follows OBJ-06J since this copies input.
+		LargeInt divisor = new LargeInt(d);
+		LargeInt dividend = new LargeInt(this);
+		LargeInt result = new LargeInt();
+		LargeInt dshift;
+		
+		int l = 1023 - divisor.log(); //position of leftmost 1
+		
+		for (int i = l; i < SIZE; i++) {
+			
+			dshift = divisor.lshift(SIZE-i-1);
+			if (dividend.compareTo(dshift) >= 0) {
+				dividend = dividend.minus(dshift);
+				result.setPos(i,  true);
+			}
+		}
+		
 		return result;
 	}
 
