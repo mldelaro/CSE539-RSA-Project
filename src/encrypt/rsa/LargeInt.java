@@ -34,7 +34,7 @@ public final class LargeInt implements Comparable<LargeInt> {
 	// DO NOT CHANGE THIS
 	// also, we don't have to make this private since this is a
 	// primitive type (not a reference)
-	public static final int SIZE = 2200;
+	public static final int SIZE = 16000;
 
 	// Initializes to 0
 	public LargeInt() {
@@ -288,7 +288,7 @@ public final class LargeInt implements Comparable<LargeInt> {
 		LargeInt result = new LargeInt();
 		LargeInt dshift;
 		
-		int l = 1023 - divisor.log(); //position of leftmost 1
+		int l = SIZE - 1 - divisor.log(); //position of leftmost 1
 		
 		for (int i = l; i < SIZE; i++) {
 			
@@ -488,13 +488,16 @@ public final class LargeInt implements Comparable<LargeInt> {
 		else {
 			StringBuffer s = new StringBuffer();
 
-			LargeInt i = this;
-			LargeInt j;
+			System.out.printf("this = %d\n", this.toInt());
+			
+			LargeInt i = new LargeInt(this);
+			LargeInt d;
 			do {
-				j = i.divide(TEN);
-				s.append(i.minus(j.multiply(TEN)).toInt());
-				i = j;
-				//System.out.printf("%s\n", s);
+				System.out.printf("i = %d\n", i.toInt());
+				d = i.mod(TEN);
+				s.append(d.toInt());
+				i = i.divide(TEN);
+				//System.out.printf("i = %d j = %d d = %d next = %d\n", i.toInt(), j.toInt(), d.toInt(), i.minus(d).toInt());
 			} while (i.compareTo(ZERO) > 0);
 			return new String(s.reverse());
 		}
