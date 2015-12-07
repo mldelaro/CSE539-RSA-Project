@@ -86,6 +86,9 @@ public class RsaServer {
 	/// Recieve the incoming ciphertext and decrypt with the private key
 	/// @Param bytesCiphertext - incoming ciphertext block
 	public void receiveCiphertext(byte[] bytesCiphertext, boolean isPadded) {
+		
+		String returnMessage = null;
+		
 		// convert byte blocks to big integer to perform mod power
 		BigInteger biCiphertext = new BigInteger(1, bytesCiphertext);
 		
@@ -97,6 +100,8 @@ public class RsaServer {
 		if(isPadded) {
 			byte[] bytesPaddedMessage = biMessage.toByteArray();
 			
+			
+			
 			int byteIndexEndOfX = (int)((m_nPaddedMessageLength - m_nRandomPadLength) / 8);
 			int byteIndexEndOfY = (int)((m_nPaddedMessageLength) / 8);
 			int byteRandomPadLength = (int)(m_nRandomPadLength/8);
@@ -106,22 +111,15 @@ public class RsaServer {
 			int messageByteLength = (int)(m_nPaddedMessageLength / 8);
 			int randomPadByteLength = (int)(m_nRandomPadLength / 8);
 			int hashByteLength = messageByteLength - randomPadByteLength;
-			
+						
 			// get byte arrays from fixed lengths
 			byte[] X = null;
 			byte[] Y = null;
 			
-			System.out.print("\nMessage = ");
-			RsaUtility.printBytes(bytesPaddedMessage);
-			
 			// get X and Y subsets from incoming block
 			try {
 				X = getByteSubset(bytesPaddedMessage, 1, (byteIndexEndOfX));
-				Y = getByteSubset(bytesPaddedMessage, (byteIndexEndOfX), byteIndexEndOfY);
-				
-				System.out.println("\nX: " + 0 + " to " + (byteIndexEndOfX - 1));
-				System.out.println("Y: " + byteIndexEndOfX + " to " + byteIndexEndOfY);
-				
+				Y = getByteSubset(bytesPaddedMessage, (byteIndexEndOfX), byteIndexEndOfY);				
 			// catch any array out of bound exceptions
 			} catch (Exception ex) {
 				System.out.println("Error");
@@ -131,7 +129,7 @@ public class RsaServer {
 			//recover the random string r = Y XOR H(X)
 			byte[] HofX = null;
 			try {
-				MessageDigest hash512 = MessageDigest.getInstance("SHA-512"); // INSPECT SEED FOR THIS DIGEST >> 00000000X....
+				MessageDigest hash512 = MessageDigest.getInstance("SHA-512");
 				HofX = RsaUtility.maskGenerationFunction(X, byteRandomPadLength, hash512);
 			} catch (NoSuchAlgorithmException e) {
 				System.out.println("Error");
@@ -140,16 +138,7 @@ public class RsaServer {
 			
 			BigInteger biY = new BigInteger(1, Y);
 			BigInteger biHofX = new BigInteger(1, HofX);
-			
-			System.out.print("\nServer Y    = ");
-			RsaUtility.printBytes(Y);
-			System.out.print("\nServer H(X) = ");
-			RsaUtility.printBytes(HofX);
-			
 			byte[] r = biY.xor(biHofX).toByteArray();
-			System.out.print("\nServer r    = ");
-			r = RsaUtility.getEndingBytes(r, 3);
-			RsaUtility.printBytes(r);
 			
 			//recover the message string m = X xor G(r)
 			byte[] GofR = null;
@@ -164,19 +153,10 @@ public class RsaServer {
 			//recover the message string m = X xor G(r)
 			BigInteger biX = new BigInteger(1, X);
 			BigInteger biGofR = new BigInteger(1, GofR);
-			
-			System.out.print("\nServer X    = ");
-			RsaUtility.printBytes(X);
-			System.out.print("\nServer G(r) = ");
-			RsaUtility.printBytes(GofR);
-			System.out.print("\nLength of G(R) = " + GofR.length);
-			
+						
 			byte[] m = biX.xor(biGofR).toByteArray();
 			RsaUtility.getEndingBytes(m, byteIndexEndOfY);
-			System.out.print("\nServer m    = ");
-			RsaUtility.printBytes(m);
 			String strMessage = new String(m);
-			System.out.println("*ALICE-Private* Decrypted Message: " + strMessage);
 			this.setLastDecryptedMessage(strMessage);
 		} else {
 			//convert BigInteger back to string message

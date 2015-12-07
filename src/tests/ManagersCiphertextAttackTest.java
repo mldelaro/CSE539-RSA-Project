@@ -54,7 +54,7 @@ public class ManagersCiphertextAttackTest {
 
 		// Ask bob to generate a ciphertext that is NOT PADDED
 		System.out.println("Client generating ciphertext for message \"12341234\"... ");
-		byte[] bytesBobsCiphertext = bob.getNewCiphertext("12341234", true); // true = padding
+		byte[] bytesBobsCiphertext = bob.getNewCiphertext("1234", true, true); // padding & verbose
 
 		// Begin Eve's malleable attack on the unpadded message
 		System.out.println("**ATTACK STARTS**");

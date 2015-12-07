@@ -46,7 +46,7 @@ public class SimplePaddedRsaTest {
 
 		// Bob generates a padded message ciphertext to send to alice
 		System.out.println("Client generating ciphertext... ");
-		byte[] ciphertext = bob.getNewCiphertext(true); // true = padded
+		byte[] ciphertext = bob.getNewCiphertext(true, false); // true = padded
 
 		System.out.print("\n*Ciphertext: ");
 		RsaUtility.printBytes(ciphertext);

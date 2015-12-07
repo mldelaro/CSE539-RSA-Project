@@ -58,7 +58,7 @@ public class RsaClient {
 	/// Apply the OAEP Padding scheme to the message in order to prevent
 	/// malleable attacks and introduce non-deterministic properties using the
 	/// random oracle
-	private byte[] padMessage(byte[] messageToPad) {
+	private byte[] padMessage(byte[] messageToPad, boolean isVerbose) {
 		// pad m with k1 zeroes
 		byte[] paddedMessage = null;
 		int paddedMessageByteLength = (int) (m_nPaddedMessageLength / 8);
@@ -108,6 +108,63 @@ public class RsaClient {
 
 		return paddedMessage;
 	}
+	
+	
+	/// Optimal Asymmetric Encryption Padding
+	/// Apply the OAEP Padding scheme to the message in order to prevent
+	/// malleable attacks and introduce non-deterministic properties using the
+	/// random oracle
+	private byte[] padMessageInsecure(byte[] messageToPad) {
+		// pad m with k1 zeroes
+		byte[] paddedMessage = null;
+		int paddedMessageByteLength = (int) (m_nPaddedMessageLength / 8);
+		int randomPadByteLength = (int) (m_nRandomPadLength / 8);
+		int messageByteLength = paddedMessageByteLength - randomPadByteLength;
+		
+		byte[] m = RsaUtility.appendZeroValueBytes(messageToPad, messageByteLength);
+
+		// generate r as a k0-length string
+		byte[] r = new BigInteger((m_nRandomPadLength), m_PRG).toByteArray();
+		r = RsaUtility.appendZeroValueBytes(r, randomPadByteLength); // pad r with zeros
+
+		// hash and expand r to n - k0 bits using G
+		byte[] GofR = null;
+		try {
+			MessageDigest hash256 = MessageDigest.getInstance("SHA-256");
+			GofR = RsaUtility.maskGenerationFunction(r, messageByteLength, hash256);
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
+
+		// XOR m and G(r)
+		BigInteger biM = new BigInteger(1, m);
+		BigInteger biGofR = new BigInteger(1, GofR);
+		BigInteger biX = biM.xor(biGofR);
+		byte[] X = biX.toByteArray();
+		X = RsaUtility.getEndingBytes(X, messageByteLength);
+		
+		// reduce X to k0 bits
+		byte[] HofX = null;
+		try {
+			MessageDigest hash512 = MessageDigest.getInstance("SHA-512");
+			HofX = RsaUtility.maskGenerationFunction(X, randomPadByteLength, hash512);
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
+
+		// XOR r and H(X)
+		BigInteger biR = new BigInteger(1, r);
+		BigInteger biHofX = new BigInteger(1, HofX);
+		BigInteger birXORhOfX = biR.xor(biHofX);
+		byte[] Y = birXORhOfX.toByteArray();
+		Y = RsaUtility.getEndingBytes(Y, randomPadByteLength);
+
+		// concat X and Y
+		paddedMessage = RsaUtility.concatenateByte(X, Y);
+
+		return paddedMessage;
+	}
+	
 
 	/// prompt the user for a new message
 	private void createNewMessage() {
@@ -121,7 +178,7 @@ public class RsaClient {
 	}
 
 	/// generate a new ciphertext by prompting the user for console input
-	public byte[] getNewCiphertext(boolean isPadded) {
+	public byte[] getNewCiphertext(boolean isPadded, boolean isVerbose) {
 		createNewMessage();
 		byte[] bytesCiphertext = null;
 
@@ -134,7 +191,7 @@ public class RsaClient {
 			// calculate the ciphertext for the padded message
 			if (isPadded) {
 				byte[] bytesPaddedMessage = null;
-				bytesPaddedMessage = padMessage(bytesMessage);
+				bytesPaddedMessage = padMessage(bytesMessage, isVerbose);
 				BigInteger biPaddedMessage = new BigInteger(1, bytesPaddedMessage);
 				BigInteger biCiphertext = biPaddedMessage.modPow(this.getServerPublicExponent(),
 						this.getServerPublicProduct());
@@ -154,8 +211,8 @@ public class RsaClient {
 		}
 	}
 
-	/// generate a new ciphertext by prompting the user for console input
-	public byte[] getNewCiphertext(String message, boolean isPadded) {
+	/// generate a new ciphertext from provided message
+	public byte[] getNewCiphertext(String message, boolean isPadded, boolean isVerbose) {
 		this.setMessage(message);
 		byte[] bytesCiphertext = null;
 
@@ -168,7 +225,7 @@ public class RsaClient {
 			// calculate the ciphertext for the padded message
 			if (isPadded) {
 				byte[] bytesPaddedMessage = null;
-				bytesPaddedMessage = padMessage(bytesMessage);
+				bytesPaddedMessage = padMessage(bytesMessage, isVerbose);
 				BigInteger biPaddedMessage = new BigInteger(1, bytesPaddedMessage);
 				BigInteger biCiphertext = biPaddedMessage.modPow(this.getServerPublicExponent(),
 						this.getServerPublicProduct());
@@ -187,7 +244,7 @@ public class RsaClient {
 			return null; // no message to send, no ciphertext to return
 		}
 	}
-
+	
 	/* PUBLIC Methods & Access functions */
 	public String PUBLISH_Message() {
 		return this.getMessage();

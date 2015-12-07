@@ -53,10 +53,7 @@ public class MalleableAttackTest {
 
 		// Ask bob to generate a ciphertext that is NOT PADDED
 		System.out.println("Client generating ciphertext for message \"12341234\"... ");
-		byte[] bytesBobsCiphertext = bob.getNewCiphertext("12341234", false); // false
-																				// =
-																				// no
-																				// padding
+		byte[] bytesBobsCiphertext = bob.getNewCiphertext("12341234", false, true); // no padding
 
 		// Begin Eve's malleable attack on the unpadded message
 		System.out.println("**ATTACK STARTS**");

@@ -47,7 +47,7 @@ public class SimpleRsaTest {
 
 		// Bob generates a padded message ciphertext to send to alice
 		System.out.println("Client generating ciphertext... ");
-		byte[] ciphertext = bob.getNewCiphertext(false); // false = no padding
+		byte[] ciphertext = bob.getNewCiphertext(false, false); // false = no padding
 
 		// Alice receives Bob's ciphertext
 		System.out.println("Server getting ciphertext... ");

@@ -11,6 +11,7 @@
 
 package encrypt.rsa;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 
 public class MaliciousClient extends RsaClient {
@@ -36,11 +37,20 @@ public class MaliciousClient extends RsaClient {
 
 	public String startManagersCiphertextAttack() {
 		String foundMessage = null;
-		if (this.getSniffedCiphertext() == null) {
+		if (this.getSniffedCiphertext() == null)  {
 			System.out.println("No ciphertext");
 			return ""; // no ciphertext to transform
 		}
-
+		
+		//find the byte length of public modulus n by taking log base 256 where 256^k = n or 2^(8*k)=n
+		BigInteger biTwo = BigInteger.valueOf(2);
+		int nExponentB = 8*(79-1); // TODO log function to solve for k
+		BigInteger B = biTwo.pow(nExponentB);
+		System.out.println("Calculated B: " + B.toString());
+		
+		// Calculate the B value: the max value that spans the length of the message space minus 1 octet
+		System.out.println("length of n: " + this.getServerPublicProduct().toByteArray().length);
+		
 		// oracle to vulnerable implementation of decrypt with padding
 		// receiveCiphertextWithErrorReturn(bytesPayload, true); //candidate
 		// payload
