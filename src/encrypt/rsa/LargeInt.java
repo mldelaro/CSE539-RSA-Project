@@ -453,7 +453,7 @@ public final class LargeInt implements Comparable<LargeInt> {
 			// assume b less than this
 			LargeInt r = this, s = b, t = r.mod(b);
 			while (t.compareTo(LargeInt.ZERO) > 0) {
-				System.out.printf("\n %d %d %d \n", r.toInt(), s.toInt(), t.toInt());
+				//System.out.printf("\n %d %d %d \n", r.toInt(), s.toInt(), t.toInt());
 				r = s;
 				s = t;
 				t = r.mod(s);
@@ -494,7 +494,7 @@ public final class LargeInt implements Comparable<LargeInt> {
 				j = i.divide(TEN);
 				s.append(i.minus(j.multiply(TEN)).toInt());
 				i = j;
-				System.out.printf("%s\n", s);
+				//System.out.printf("%s\n", s);
 			} while (i.compareTo(ZERO) > 0);
 			return new String(s.reverse());
 		}
