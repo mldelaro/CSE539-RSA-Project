@@ -96,11 +96,19 @@ public class RsaServer {
 		System.out.println("Alice receives c and decrypts with private key");
 		BigInteger biMessage = biCiphertext.modPow(this.getPrivateKey(), this.getPublicProduct());
 		
+		System.out.print("*Server* Encrypted Message: ");
+		RsaUtility.printBytes(biCiphertext.toByteArray());
+		System.out.println();
+		
+		
 		// if the message is padded, unpad it through OAEP
 		if(isPadded) {
+			
+			System.out.print("*Server* Decrypted Padded Message: ");
+			RsaUtility.printBytes(biMessage.toByteArray());
+			System.out.println();
+			
 			byte[] bytesPaddedMessage = biMessage.toByteArray();
-			
-			
 			
 			int byteIndexEndOfX = (int)((m_nPaddedMessageLength - m_nRandomPadLength) / 8);
 			int byteIndexEndOfY = (int)((m_nPaddedMessageLength) / 8);
@@ -140,6 +148,18 @@ public class RsaServer {
 			BigInteger biHofX = new BigInteger(1, HofX);
 			byte[] r = biY.xor(biHofX).toByteArray();
 			
+			System.out.print("*Server* Y    = ");
+			RsaUtility.printBytes(biY.toByteArray());
+			System.out.println();
+			
+			System.out.print("*Server* H(X) = ");
+			RsaUtility.printBytes(biHofX.toByteArray());
+			System.out.println();
+			
+			System.out.print("*Server* r    = ");
+			RsaUtility.printBytes(r);
+			System.out.println();
+			
 			//recover the message string m = X xor G(r)
 			byte[] GofR = null;
 			try {
@@ -153,15 +173,33 @@ public class RsaServer {
 			//recover the message string m = X xor G(r)
 			BigInteger biX = new BigInteger(1, X);
 			BigInteger biGofR = new BigInteger(1, GofR);
-						
+			
 			byte[] m = biX.xor(biGofR).toByteArray();
 			RsaUtility.getEndingBytes(m, byteIndexEndOfY);
 			String strMessage = new String(m);
 			this.setLastDecryptedMessage(strMessage);
+			
+			System.out.print("*Server* X    = ");
+			RsaUtility.printBytes(biX.toByteArray());
+			System.out.println();
+			
+			System.out.print("*Server* G(r) = ");
+			RsaUtility.printBytes(biGofR.toByteArray());
+			System.out.println();
+			
+			System.out.print("*Server* m    = ");
+			RsaUtility.printBytes(m);
+			System.out.println();
+						
+			
 		} else {
+			
+			System.out.print("*Server* Decrypted Message: ");
+			RsaUtility.printBytes(biMessage.toByteArray());
+			System.out.println();
+			
 			//convert BigInteger back to string message
 			String strMessage = new String(biMessage.toByteArray());
-			System.out.println("*ALICE-Private* Decrypted Message: " + strMessage);
 			this.setLastDecryptedMessage(strMessage);
 		}
 	}

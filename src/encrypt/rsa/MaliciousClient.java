@@ -24,12 +24,12 @@ public class MaliciousClient extends RsaClient {
 			return null; // no ciphertext to transform
 
 		} else {
-			System.out.println("*Eve-Private* Eve edits message: " + new String(this.getSniffedCiphertext()));
+			System.out.println("*Adversary* Edit message: " + new String(this.getSniffedCiphertext()));
 			BigInteger biCiphertext = new BigInteger(1, this.getSniffedCiphertext());
 			BigInteger biPayload = biCiphertext.multiply(
 					BigInteger.valueOf(2).modPow(super.getServerPublicExponent(), super.getServerPublicProduct()));
 
-			System.out.println("*Eve-Private* Eve creates a payload: " + new String(biPayload.toByteArray()));
+			System.out.println("*Adversary* Create payload: " + new String(biPayload.toByteArray()));
 			bytesPayload = biPayload.toByteArray();
 			return bytesPayload;
 		}

@@ -23,7 +23,6 @@ public final class RsaUtility {
 	/// @Param MessageDigest - Hash function to concatenate extra values
 	public static byte[] maskGenerationFunction(byte[] seed, int desiredByteLength, MessageDigest hashFunction) {
 		byte[] T = new byte[desiredByteLength]; // create empty byte array
-		printBytes(seed);
 		int counter = 0;
 		double digestByteSize = (double) (hashFunction.getDigestLength() / 8.0d);
 		double temp = (desiredByteLength / digestByteSize);

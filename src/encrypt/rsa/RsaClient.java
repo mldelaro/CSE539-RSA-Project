@@ -17,6 +17,7 @@ import java.security.NoSuchAlgorithmException;
 import java.nio.ByteBuffer;
 import java.util.Random;
 import java.util.Scanner;
+
 import encrypt.rsa.util.RsaUtility;
 
 public class RsaClient {
@@ -87,61 +88,17 @@ public class RsaClient {
 		byte[] X = biX.toByteArray();
 		X = RsaUtility.getEndingBytes(X, messageByteLength);
 		
-		// reduce X to k0 bits
-		byte[] HofX = null;
-		try {
-			MessageDigest hash512 = MessageDigest.getInstance("SHA-512");
-			HofX = RsaUtility.maskGenerationFunction(X, randomPadByteLength, hash512);
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		}
-
-		// XOR r and H(X)
-		BigInteger biR = new BigInteger(1, r);
-		BigInteger biHofX = new BigInteger(1, HofX);
-		BigInteger birXORhOfX = biR.xor(biHofX);
-		byte[] Y = birXORhOfX.toByteArray();
-		Y = RsaUtility.getEndingBytes(Y, randomPadByteLength);
-
-		// concat X and Y
-		paddedMessage = RsaUtility.concatenateByte(X, Y);
-
-		return paddedMessage;
-	}
-	
-	
-	/// Optimal Asymmetric Encryption Padding
-	/// Apply the OAEP Padding scheme to the message in order to prevent
-	/// malleable attacks and introduce non-deterministic properties using the
-	/// random oracle
-	private byte[] padMessageInsecure(byte[] messageToPad) {
-		// pad m with k1 zeroes
-		byte[] paddedMessage = null;
-		int paddedMessageByteLength = (int) (m_nPaddedMessageLength / 8);
-		int randomPadByteLength = (int) (m_nRandomPadLength / 8);
-		int messageByteLength = paddedMessageByteLength - randomPadByteLength;
+		System.out.print("*Client* m    = ");
+		RsaUtility.printBytes(m);
+		System.out.println();
 		
-		byte[] m = RsaUtility.appendZeroValueBytes(messageToPad, messageByteLength);
-
-		// generate r as a k0-length string
-		byte[] r = new BigInteger((m_nRandomPadLength), m_PRG).toByteArray();
-		r = RsaUtility.appendZeroValueBytes(r, randomPadByteLength); // pad r with zeros
-
-		// hash and expand r to n - k0 bits using G
-		byte[] GofR = null;
-		try {
-			MessageDigest hash256 = MessageDigest.getInstance("SHA-256");
-			GofR = RsaUtility.maskGenerationFunction(r, messageByteLength, hash256);
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		}
-
-		// XOR m and G(r)
-		BigInteger biM = new BigInteger(1, m);
-		BigInteger biGofR = new BigInteger(1, GofR);
-		BigInteger biX = biM.xor(biGofR);
-		byte[] X = biX.toByteArray();
-		X = RsaUtility.getEndingBytes(X, messageByteLength);
+		System.out.print("*Client* G(r) = ");
+		RsaUtility.printBytes(biGofR.toByteArray());
+		System.out.println();
+		
+		System.out.print("*Client* X    = ");
+		RsaUtility.printBytes(X);
+		System.out.println();
 		
 		// reduce X to k0 bits
 		byte[] HofX = null;
@@ -158,6 +115,18 @@ public class RsaClient {
 		BigInteger birXORhOfX = biR.xor(biHofX);
 		byte[] Y = birXORhOfX.toByteArray();
 		Y = RsaUtility.getEndingBytes(Y, randomPadByteLength);
+		
+		System.out.print("*Client* r    = ");
+		RsaUtility.printBytes(biR.toByteArray());
+		System.out.println();
+		
+		System.out.print("*Client* H(X) = ");
+		RsaUtility.printBytes(biHofX.toByteArray());
+		System.out.println();
+		
+		System.out.print("*Client* Y    = ");
+		RsaUtility.printBytes(Y);
+		System.out.println();
 
 		// concat X and Y
 		paddedMessage = RsaUtility.concatenateByte(X, Y);
@@ -165,7 +134,6 @@ public class RsaClient {
 		return paddedMessage;
 	}
 	
-
 	/// prompt the user for a new message
 	private void createNewMessage() {
 		String m = promptForMessage();
@@ -187,7 +155,7 @@ public class RsaClient {
 			// create bytes for message
 			byte[] bytesMessage = null;
 			bytesMessage = this.getMessage().getBytes();
-
+			
 			// calculate the ciphertext for the padded message
 			if (isPadded) {
 				byte[] bytesPaddedMessage = null;
@@ -204,6 +172,10 @@ public class RsaClient {
 						this.getServerPublicProduct());
 				bytesCiphertext = biCiphertext.toByteArray();
 			}
+			
+			System.out.print("Client's Ciphertext: ");
+			RsaUtility.printBytes(bytesCiphertext);
+			System.out.println();
 			return bytesCiphertext;
 
 		} else {
